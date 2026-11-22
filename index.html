@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#06090e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FlowDash">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<title>FlowDash · Liquidity & Order Flow</title>
+<style>
+  :root{--bg:#06090e;--panel:#0c121a;--panel2:#0a0f16;--line:#18232f;--text:#e6edf3;--muted:#7f8d9b;--buy:#22c55e;--sell:#ef4444;--acc:#38bdf8;--warn:#f59e0b;--demo:#a855f7;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:500 12.5px/1.4 var(--font)}
+  .num{font-variant-numeric:tabular-nums}
+  .buy{color:var(--buy)} .sell{color:var(--sell)} .muted{color:var(--muted)} .warn{color:var(--warn)}
+  header{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:#070b11;position:sticky;top:0;z-index:20;flex-wrap:wrap}
+  .logo{font:800 15px var(--font);letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+  .logo i{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,#0ea5e9 0 50%,#f97316 50% 100%);display:inline-block}
+  .seg{display:inline-flex;border:1px solid #223041;border-radius:8px;overflow:hidden}
+  .seg button{border:0;border-radius:0;background:#0a1017;padding:6px 10px}
+  .seg button.on{background:#062530;color:#67e8f9}
+  button{background:#0f1720;color:var(--text);border:1px solid #223041;border-radius:8px;font:700 12px var(--font);padding:6px 10px;cursor:pointer}
+  button:hover{border-color:#36506a} button.on{border-color:#0e7490;color:#67e8f9;background:#062530}
+  button.small{padding:3px 8px;font-size:11px}
+  input,select{background:#0a1017;color:var(--text);border:1px solid #223041;border-radius:7px;font:600 12px var(--font);padding:5px 7px}
+  .px{font:800 20px var(--font)} .chg{font:700 13px var(--font)}
+  .pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font:700 10.5px var(--font);color:var(--muted);white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:#555} .dot.ok{background:var(--buy);box-shadow:0 0 5px #22c55e} .dot.warnd{background:var(--warn)} .dot.bad{background:var(--sell)}
+  .grow{flex:1}
+  #demobar{display:none;background:repeating-linear-gradient(45deg,#2e1065,#2e1065 12px,#3b0764 12px,#3b0764 24px);color:#f3e8ff;padding:8px 12px;font:800 13px var(--font);text-align:center;border-bottom:1px solid #6b21a8;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+  body.demo #demobar{display:flex}
+  body.demo header{border-bottom-color:#6b21a8}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:10px;padding:10px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0;overflow:hidden}
+  section h2{margin:0;padding:8px 12px;border-bottom:1px solid var(--line);font:800 11.5px var(--font);letter-spacing:.7px;text-transform:uppercase;color:#b9c7d5;display:flex;align-items:center;gap:8px}
+  section h2 .sub{font:600 10.5px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}
+  .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--line)}
+  button.tog{font-size:11px;padding:4px 8px}
+  .chartbox{position:relative;height:clamp(440px,calc(100vh - 330px),720px);touch-action:none;user-select:none}
+  .chartbox canvas{position:absolute;inset:0;display:block;cursor:crosshair}
+  .tip{position:absolute;display:none;pointer-events:none;background:#0b1118f2;border:1px solid #2b3b4d;border-radius:8px;padding:6px 9px;font-size:11.5px;line-height:1.45;z-index:3;white-space:nowrap}
+  .side{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:8px 12px;align-items:baseline}
+  .kv .k{color:var(--muted)} .kv .v{text-align:right;font-weight:700}
+  .kv .full{grid-column:1 / -1}
+  .tag{display:inline-block;font:800 9.5px var(--font);letter-spacing:.4px;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:1px}
+  .tag.real{background:#052e16;color:#4ade80;border:1px solid #166534} .tag.cand{background:#0c2a3a;color:#7dd3fc;border:1px solid #0e7490}
+  .tag.samp{background:#2a1d05;color:#fcd34d;border:1px solid #a16207} .tag.demo{background:#2e1065;color:#e9d5ff;border:1px solid #7e22ce} .tag.na{background:#1f2937;color:#9ca3af;border:1px solid #374151}
+  .bar{height:6px;border-radius:3px;background:#3f1515;overflow:hidden;margin-top:3px} .bar i{display:block;height:100%;background:var(--buy)}
+  .bottom{grid-column:1 / -1;display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(0,1.9fr);gap:10px}
+  .sigbox{padding:12px}
+  .sig{font:900 30px var(--font);letter-spacing:1px}
+  .sig.long{color:var(--buy)} .sig.short{color:var(--sell)} .sig.wait{color:#94a3b8}
+  .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+  .lv{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px} .lv b{display:block;font-size:14px} .lv span{color:var(--muted);font-size:10.5px}
+  .score{font:800 22px var(--font)}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .checks>div{padding:6px 10px} .checks>div+div{border-left:1px solid var(--line)}
+  .ck{display:grid;grid-template-columns:18px 1fr;gap:4px;padding:4px 0;border-bottom:1px solid #0f1821}
+  .ck .m{font-weight:900} .ck .m.ok{color:var(--buy)} .ck .m.no{color:#64748b}
+  .ck .val{color:var(--muted);font-size:11px}
+  .ck .opt{color:#a3a3a3;font-size:10px;margin-left:4px}
+  .explain{padding:8px 12px;border-top:1px solid var(--line);color:#cbd5e1;font-size:12px;line-height:1.55}
+  table{width:100%;border-collapse:collapse}
+  th{font:700 10.5px var(--font);color:var(--muted);text-align:right;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+  td{padding:4px 7px;border-bottom:1px solid #0f1821;text-align:right;white-space:nowrap}
+  th.l,td.l{text-align:left}
+  .tabs{grid-column:1 / -1}
+  .tabbar{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabbar button{font-size:12px}
+  .pane{display:none;padding:10px 12px} .pane.show{display:block}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .card h3{margin:0 0 6px;font:800 12px var(--font);color:#cbd5e1}
+  .card p{margin:4px 0}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px} .stat span{color:var(--muted);font-size:11px;display:block} .stat b{font-size:17px}
+  .scroll{overflow:auto}
+  .modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:40;padding:14px}
+  .modal .mc{background:#0b1118;border:1px solid #2b3b4d;border-radius:14px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:14px 16px}
+  .form{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;align-items:center} .form input{width:120px}
+  .note{color:var(--muted);font-size:11.5px;line-height:1.5}
+  .evt td{font-size:11.5px}
+  @media (max-width:1100px){ main{grid-template-columns:1fr} .bottom{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} .stats{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i></i>FlowDash</div>
+  <span class="seg" id="symSeg"><button data-s="BTCUSDT">BTCUSDT</button><button data-s="ETHUSDT">ETHUSDT</button></span>
+  <span class="seg" id="tfSeg"><button data-tf="1m">1m</button><button data-tf="5m">5m</button><button data-tf="15m">15m</button><button data-tf="1h">1h</button></span>
+  <span class="px num" id="hPx">—</span><span class="chg num" id="hChg">—</span>
+  <span class="pill" id="stMk" title="Klines, trades and 24h ticker (wss://fstream.binance.com/market/stream)"><span class="dot"></span>MARKET WS</span>
+  <span class="pill" id="stDp" title="Top-20 depth (wss://fstream.binance.com/public/stream)"><span class="dot"></span>DEPTH WS</span>
+  <span class="pill" id="stBook" title="Full order book REST snapshots (/fapi/v1/depth)"><span class="dot"></span>BOOK</span>
+  <span class="pill" id="stOi" title="Open interest REST (/fapi/v1/openInterest, /futures/data/openInterestHist)"><span class="dot"></span>OI</span>
+  <span class="pill num" id="stLast">last —</span>
+  <div class="grow"></div>
+  <button id="bDemo" title="Scripted demo scenario (not market data)">DEMO</button>
+  <button id="bSettings">Settings</button>
+  <button id="bInfo">ⓘ</button>
+</header>
+<div id="demobar">⚠ DEMO MODE — scripted scenario, NOT market data. Live data is paused and never mixed in.
+  <button class="small" id="dPlay">⏸ Pause</button><button class="small" id="dStep">Step ▶|</button><button class="small" id="dRestart">Restart</button>
+  <select id="dSpeed"><option value="900">Slow</option><option value="400" selected>Normal</option><option value="120">Fast</option></select>
+  <span id="dInfo" class="num"></span><button class="small" id="dExit">Exit demo → live</button></div>
+<main>
+  <section id="sChart">
+    <h2>Chart <span class="sub" id="chartSub"></span></h2>
+    <div class="tools">
+      <button class="tog" id="tHeat" title="Sampled order book heat overlay">HEATMAP</button>
+      <button class="tog" id="tWalls" title="Current liquidity walls">WALLS</button>
+      <button class="tog" id="tStruct" title="Swings, sweeps, CHoCH, BOS, retest">STRUCTURE</button>
+      <button class="tog" id="tSig" title="Entry / SL / TP of the latest signal">SIGNAL</button>
+      <button class="tog" id="tVol">VOLUME</button>
+      <button class="tog" id="tCvd">CVD PANE</button>
+      <button class="tog" id="tReset">⟲ Live</button>
+      <span class="muted num" id="chartInfo"></span>
+    </div>
+    <div class="chartbox" id="cBox"><canvas id="cv"></canvas><div class="tip" id="cTip"></div></div>
+    <div class="note" style="padding:6px 12px 8px" id="heatNote"></div>
+  </section>
+  <div class="side">
+    <section>
+      <h2>Open interest <span class="sub" id="oiSub"></span></h2>
+      <div class="kv" id="oiKv"></div>
+    </section>
+    <section>
+      <h2>Executed volume <span class="sub">aggressive buyers vs sellers</span></h2>
+      <div class="kv" id="volKv"></div>
+    </section>
+    <section>
+      <h2>Liquidity <span class="sub">resting limit orders</span></h2>
+      <div class="kv" id="liqKv"></div>
+    </section>
+    <section>
+      <h2>Structure <span class="sub">closed candles only</span></h2>
+      <div class="kv" id="stKv"></div>
+    </section>
+  </div>
+  <div class="bottom">
+    <section>
+      <h2>Signal <span class="sub" id="sigSub">CHoCH + BOS + Retest</span></h2>
+      <div class="sigbox">
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span class="sig wait" id="sigTxt">WAIT</span><span class="muted" id="sigWhen"></span></div>
+        <div class="levels">
+          <div class="lv"><span>Entry</span><b class="num" id="lEntry">—</b></div>
+          <div class="lv"><span>Stop loss</span><b class="num sell" id="lSl">—</b></div>
+          <div class="lv"><span>Risk/Reward</span><b class="num" id="lRr">—</b></div>
+          <div class="lv"><span>TP1 (1:2)</span><b class="num buy" id="lTp1">—</b></div>
+          <div class="lv"><span>TP2 (1:3)</span><b class="num buy" id="lTp2">—</b></div>
+          <div class="lv"><span>Confidence</span><b class="num" id="lScore">—</b></div>
+        </div>
+        <div class="kv" style="padding:0" id="sizeKv"></div>
+      </div>
+    </section>
+    <section>
+      <h2>Setup checklist <span class="sub">✓ = condition met on closed candles · REQUIRED unless marked scoring</span></h2>
+      <div class="checks"><div id="ckLong"></div><div id="ckShort"></div></div>
+      <div class="explain" id="explain"></div>
+    </section>
+  </div>
+  <section class="tabs">
+    <div class="tabbar" id="tabbar">
+      <button data-p="pAnalysis" class="on">Analysis</button><button data-p="pWalls">Wall events</button><button data-p="pBacktest">Backtest</button><button data-p="pData">Data sources</button>
+    </div>
+    <div class="pane show" id="pAnalysis"><div class="grid3">
+      <div class="card"><h3>Price + open interest <span class="tag cand">INTERPRETATION</span></h3><div id="anOi"></div></div>
+      <div class="card"><h3>Liquidity</h3><div id="anLiq"></div></div>
+      <div class="card"><h3>Volume / CVD</h3><div id="anVol"></div></div>
+    </div><p class="note">These are interpretations of public market data, not guaranteed market signals and not financial advice.</p></div>
+    <div class="pane" id="pWalls"><div class="note" style="margin-bottom:6px">A wall that vanished while trades printed at its price = <b>filled / absorbed</b>; vanished with (almost) no trades there = <b>pulled</b> (cancelled); re-appeared nearby on the same side = <b>moved</b>. Checked between order book snapshots (sampled), so fast changes in between are not seen.</div>
+      <div class="scroll" style="max-height:340px"><table class="evt" id="wallTbl"><thead><tr><th class="l">Time</th><th class="l">Event</th><th class="l">Side</th><th>Price</th><th>Size</th><th>Value</th><th>Traded there</th><th>Lived</th></tr></thead><tbody></tbody></table></div></div>
+    <div class="pane" id="pBacktest">
+      <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span>Bars</span><select id="btBars"><option>500</option><option>1000</option><option selected>1500</option></select>
+        <span>Exits</span><select id="btMode"><option value="split" selected>50% at 1:2, stop to break-even, 50% at 1:3</option><option value="tp1">All at TP1 (1:2)</option><option value="tp2">All at TP2 (1:3)</option></select>
+        <button id="btRun">Run backtest on <span id="btWhat"></span></button><span class="muted" id="btStatus"></span>
+      </div>
+      <p class="note" id="btNote">Historical klines are replayed bar by bar; the engine at bar i sees only bars 0…i (closed). Entry = <b>next bar's open</b> after the signal candle closes, plus slippage. If a candle touches both stop and target, the <b>stop is assumed first</b>. Taker fee is charged on every fill; slippage on entry and stop exits. Size = settings risk % of current equity. <b>Not used historically:</b> order book / walls / heatmap (not available), live aggTrade CVD (uses kline taker-buy volume instead) and the sampled 1-minute OI (uses Binance openInterestHist, which only covers the last 30 days).</p>
+      <div id="btOut"></div>
+    </div>
+    <div class="pane" id="pData"><div id="dataTbl"></div></div>
+  </section>
+</main>
+<div class="modal" id="mSettings"><div class="mc">
+  <button style="float:right" data-close>Close</button><h3 style="margin-top:0">Settings</h3>
+  <div class="form" id="setForm"></div>
+  <p class="note">Saved in this browser. Engine changes apply on the next closed candle (or immediately on the backtest).</p>
+</div></div>
+<div class="modal" id="mInfo"><div class="mc">
+  <button style="float:right" data-close>Close</button><h3 style="margin-top:0">About FlowDash</h3>
+  <p>Public Binance USDT-M futures data only (no account, no API keys). Charts are drawn with FlowDash's own canvas code (no third-party chart library, no CDN), so it also works offline from a file.</p>
+  <p><b>Order book heatmap.</b> FlowDash samples the full order book (up to 1000 levels per side) every few seconds and stores binned snapshots in this browser (IndexedDB, 24 h per symbol). The heat shows <b>resting limit orders</b> (liquidity that could trade), not executed trades, and only for the time this app has been open on this device. There is no order book history before that.</p>
+  <p><b>Strategy.</b> LONG: sweep below a swing low (wick through, close back above) → absorption or buying pressure → bullish CHoCH (first close above the last lower high while structure was bearish) → bullish BOS (close above the first swing high formed after the CHoCH) → retest of that broken level (within tolerance) → positive candle delta and rising CVD (taker buy &gt; taker sell) → stop loss beyond the protective swing (or sweep extreme) plus 0.25 ATR. OI only adds to the score. SHORT is the mirror. Only closed candles are used, so signals never repaint.</p>
+  <p><b>Confidence score</b> = 60 for passing every required step, + up to 15 for OI evidence (new positions in the signal direction 15, covering/liquidation 5), + 5 sweep volume spike, + 5 absorption candle, + 5 strong retest delta, + 10 live order book support (bid/ask imbalance or wall on the right side; live only). It is a transparent checklist score, not a probability.</p>
+  <p>Times are UTC+8. Not financial advice; signals are rule outputs, not predictions.</p>
+</div></div>
+<script id="fdcore">
+/* FlowDash pure logic: no DOM, no network. Tested by tests/core.test.js */
+var FD = (function () {
+  'use strict';
+  var KL = 8 * 3600e3; // display zone UTC+8 (Asia/Kuala_Lumpur)
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtTime(ms) { var d = new Date(ms + KL); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()); }
+  function fmtHM(ms) { var d = new Date(ms + KL); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()); }
+  function fmtDateTime(ms) { var d = new Date(ms + KL); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) + ' ' + fmtTime(ms); }
+  function fmtUsd(v) {
+    if (!isFinite(v)) return '—';
+    var a = Math.abs(v), s = v < 0 ? '-' : '';
+    if (a >= 999.5e6) return s + '$' + (a / 1e9).toFixed(2) + 'B';
+    if (a >= 999.5e3) return s + '$' + (a / 1e6).toFixed(2) + 'M';
+    if (a >= 1e3) return s + '$' + (a / 1e3).toFixed(a >= 1e5 ? 0 : 1) + 'K';
+    return s + '$' + a.toFixed(2);
+  }
+  function fmtPrice(p, d) { if (!(p > 0)) return '—'; d = d == null ? (p >= 1000 ? 1 : 2) : d; return p.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function fmtPct(p, d) { if (!isFinite(p)) return '—'; return (p > 0 ? '+' : '') + p.toFixed(d == null ? 2 : d) + '%'; }
+  function fmtQty(q) { var a = Math.abs(q); if (!isFinite(q)) return '—'; if (a >= 1e6) return (q / 1e6).toFixed(2) + 'M'; if (a >= 1e4) return (q / 1e3).toFixed(1) + 'K'; if (a >= 100) return q.toFixed(0); if (a >= 1) return q.toFixed(2); return q.toFixed(4); }
+  function fmtCountdown(ms) { var t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60; return (h ? pad(h) + ':' : '') + pad(m) + ':' + pad(s); }
+  var TF = { '1m': 6e4, '5m': 3e5, '15m': 9e5, '1h': 36e5 };
+  function backoff(a) { return Math.min(30000, 1000 * Math.pow(2, Math.max(0, a))); }
+
+  // ---------- candles ----------
+  // Binance kline array -> candle. tb = taker BUY base volume (aggressive buyers), delta = buy - sell = 2*tb - v
+  function parseKline(a) {
+    var v = +a[5], tb = +a[9];
+    return { t: +a[0], o: +a[1], h: +a[2], l: +a[3], c: +a[4], v: v, q: +a[7], n: +a[8], tb: tb, tq: +a[10], T: +a[6], d: 2 * tb - v };
+  }
+  function parseWsKline(k) { var v = +k.v, tb = +k.V; return { t: +k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: v, q: +k.q, n: +k.n, tb: tb, tq: +k.Q, T: +k.T, d: 2 * tb - v, x: !!k.x }; }
+  function sma(arr, i, n, f) { var s = 0, k = 0; for (var j = Math.max(0, i - n + 1); j <= i; j++) { s += f(arr[j]); k++; } return k ? s / k : NaN; }
+  function atr(cs, i, n) {
+    var s = 0, k = 0;
+    for (var j = Math.max(1, i - n + 1); j <= i; j++) { var c = cs[j], pc = cs[j - 1].c; s += Math.max(c.h - c.l, Math.abs(c.h - pc), Math.abs(c.l - pc)); k++; }
+    return k ? s / k : (cs[i] ? cs[i].h - cs[i].l : 0);
+  }
+  function cvdSeries(cs) { var out = [], s = 0; for (var i = 0; i < cs.length; i++) { s += cs[i].d; out.push(s); } return out; }
+  // volume spike: candle volume > k x mean of the previous n candles (closed data only)
+  function isSpike(cs, i, k, n) { if (i < n) return false; var m = 0; for (var j = i - n; j < i; j++) m += cs[j].v; m /= n; return m > 0 && cs[i].v > k * m; }
+  function spikes(cs, k, n) { var o = []; for (var i = 0; i < cs.length; i++) if (isSpike(cs, i, k, n)) o.push(i); return o; }
+
+  // ---------- swings (fractal) ----------
+  // a swing high at j needs N bars on both sides: h[j] > max(left N) and >= max(right N). Confirmed only at bar j+N.
+  function swingAt(cs, j, N) {
+    if (j - N < 0 || j + N >= cs.length) return null;
+    var isH = true, isL = true;
+    for (var k = 1; k <= N; k++) {
+      if (!(cs[j].h > cs[j - k].h) || !(cs[j].h >= cs[j + k].h)) isH = false;
+      if (!(cs[j].l < cs[j - k].l) || !(cs[j].l <= cs[j + k].l)) isL = false;
+    }
+    return isH && isL ? 'HL' : isH ? 'H' : isL ? 'L' : null;
+  }
+  function findSwings(cs, N, upto) {
+    var out = [], last = upto == null ? cs.length - 1 : upto;
+    for (var j = N; j + N <= last; j++) { var s = swingAt(cs.slice(0, last + 1), j, N); if (!s) continue; if (s.indexOf('H') >= 0) out.push({ i: j, type: 'H', price: cs[j].h, conf: j + N }); if (s.indexOf('L') >= 0) out.push({ i: j, type: 'L', price: cs[j].l, conf: j + N }); }
+    return out;
+  }
+  // divergence between price swings and CVD at those swings (uses confirmed swings only)
+  function divergence(cs, cvd, swings) {
+    var hs = swings.filter(function (s) { return s.type === 'H'; }), ls = swings.filter(function (s) { return s.type === 'L'; }), out = { bearish: null, bullish: null };
+    if (hs.length >= 2) { var a = hs[hs.length - 2], b = hs[hs.length - 1]; if (b.price > a.price && cvd[b.i] < cvd[a.i]) out.bearish = { a: a, b: b }; }
+    if (ls.length >= 2) { var c = ls[ls.length - 2], e = ls[ls.length - 1]; if (e.price < c.price && cvd[e.i] > cvd[c.i]) out.bullish = { a: c, b: e }; }
+    return out;
+  }
+
+  // ---------- open interest ----------
+  function oiAt(series, t) { // last point with t <= time (no look-ahead); series sorted [{t, oi}]
+    var lo = 0, hi = series.length - 1, r = null;
+    while (lo <= hi) { var m = (lo + hi) >> 1; if (series[m].t <= t) { r = series[m]; lo = m + 1; } else hi = m - 1; }
+    return r;
+  }
+  function oiChange(series, now, winMs) {
+    var a = oiAt(series, now - winMs), b = oiAt(series, now);
+    if (!a || !b || a === b || !(a.oi > 0) || now - b.t > Math.max(winMs, 6e5)) return null;
+    return { pct: (b.oi - a.oi) / a.oi * 100, from: a, to: b };
+  }
+  // interpretation table (interpretations, NOT guaranteed signals). eps in %.
+  function oiInterpret(dp, doi, eps) {
+    eps = eps == null ? 0.05 : eps;
+    if (!isFinite(dp) || !isFinite(doi)) return { code: 'na', text: 'OI unavailable' };
+    var pu = dp > eps, pd = dp < -eps, ou = doi > eps, od = doi < -eps;
+    if (pu && ou) return { code: 'new_longs', text: 'Price ↑ + OI ↑ = possible new long positions' };
+    if (pd && ou) return { code: 'new_shorts', text: 'Price ↓ + OI ↑ = possible new short positions' };
+    if (pu && od) return { code: 'short_covering', text: 'Price ↑ + OI ↓ = possible short covering' };
+    if (pd && od) return { code: 'long_liquidation', text: 'Price ↓ + OI ↓ = possible long liquidation' };
+    return { code: 'flat', text: 'Price or OI roughly flat (within ±' + eps + '%) = no clear read' };
+  }
+
+  // ---------- order book ----------
+  // levels: [[price, qty], ...]; returns notional within ±pct% of mid per side and imbalance (-1..1, + = more bids)
+  function concentration(bids, asks, mid, pct) {
+    var lo = mid * (1 - pct / 100), hi = mid * (1 + pct / 100), b = 0, a = 0, i;
+    for (i = 0; i < bids.length; i++) if (bids[i][0] >= lo) b += bids[i][0] * bids[i][1];
+    for (i = 0; i < asks.length; i++) if (asks[i][0] <= hi) a += asks[i][0] * asks[i][1];
+    return { bid: b, ask: a, imb: b + a > 0 ? (b - a) / (b + a) : 0 };
+  }
+  function median(xs) { if (!xs.length) return 0; var s = xs.slice().sort(function (a, b) { return a - b; }), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  // wall = level with qty > k x median qty of that side's levels within ±rangePct% of mid, and notional >= minNotional (largest maxPerSide per side)
+  function detectWalls(bids, asks, mid, o) {
+    o = o || {}; var k = o.k || 8, rp = o.rangePct || 1, mn = o.minNotional || 0, out = [];
+    [['bid', bids], ['ask', asks]].forEach(function (sd) {
+      var lv = sd[1].filter(function (l) { return Math.abs(l[0] - mid) / mid * 100 <= rp; }), med = median(lv.map(function (l) { return l[1]; }));
+      var ws = [];
+      lv.forEach(function (l) { if (med > 0 && l[1] > k * med && l[0] * l[1] >= mn) ws.push({ side: sd[0], price: l[0], qty: l[1], notional: l[0] * l[1], ratio: l[1] / med, distPct: (l[0] - mid) / mid * 100 }); });
+      ws.sort(function (a, b) { return b.notional - a.notional; });
+      out = out.concat(o.maxPerSide ? ws.slice(0, o.maxPerSide) : ws);
+    });
+    return out.sort(function (a, b) { return b.notional - a.notional; });
+  }
+  // Track walls between snapshots. prev/now: wall lists. traded(price): base qty executed at ~that price since last snapshot.
+  // inRange(price): whether the new snapshot still covers that price. Vanished wall: traded >= fillFrac*qty -> 'filled' (absorbed),
+  // otherwise if a similar wall appears nearby on the same side -> 'moved', else 'pulled' (cancelled without trades).
+  // o.qtyAt(side, price): size still resting at that price in the new snapshot (a wall that is still there is kept, not reported).
+  function trackWalls(prev, now, traded, inRange, t, o) {
+    o = o || {}; var moveTol = o.moveTolPct == null ? 0.1 : o.moveTolPct, fillFrac = o.fillFrac == null ? 0.5 : o.fillFrac, events = [], active = [];
+    var used = {};
+    now.forEach(function (w) {
+      var p = prev.find(function (x) { return x.side === w.side && x.price === w.price; });
+      var nw = Object.assign({}, w, { first: p ? p.first : t, last: t, maxQty: Math.max(w.qty, p ? p.maxQty || p.qty : 0) });
+      if (p) used[p.side + p.price] = 1;
+      active.push(nw);
+    });
+    prev.forEach(function (p) {
+      if (used[p.side + p.price]) return;
+      // still resting in the new book (e.g. just dropped out of the top-N list)? then it did not vanish
+      var still = o.qtyAt ? o.qtyAt(p.side, p.price) : 0;
+      if (still >= (1 - fillFrac) * p.qty) { active.push(Object.assign({}, p, { qty: still, notional: still * p.price, last: t, faded: true })); return; }
+      if (!inRange(p.price)) { events.push({ type: 'out', side: p.side, price: p.price, qty: p.qty, t: t, life: t - p.first }); return; }
+      var tq = traded(p.price) || 0;
+      if (tq >= fillFrac * p.qty) { events.push({ type: 'filled', side: p.side, price: p.price, qty: p.qty, traded: tq, t: t, life: t - p.first }); return; }
+      var mv = active.find(function (w) { return w.side === p.side && !w._moved && w.first === t && Math.abs(w.price - p.price) / p.price * 100 <= moveTol && Math.abs(w.qty - p.qty) <= 0.4 * p.qty; });
+      if (mv) { mv._moved = 1; mv.first = p.first; events.push({ type: 'moved', side: p.side, price: p.price, to: mv.price, qty: p.qty, t: t, life: t - p.first }); return; }
+      events.push({ type: 'pulled', side: p.side, price: p.price, qty: p.qty, traded: tq, t: t, life: t - p.first });
+    });
+    active.forEach(function (w) { if (w.first === t && !w._moved) events.push({ type: 'new', side: w.side, price: w.price, qty: w.qty, t: t }); delete w._moved; });
+    return { active: active, events: events };
+  }
+  // bin a snapshot for the heatmap: returns {t, mid, bs, b:[[binPrice, qty]], a:[...]} within ±rangePct
+  function binBook(bids, asks, mid, bs, rangePct, t) {
+    var lo = mid * (1 - rangePct / 100), hi = mid * (1 + rangePct / 100);
+    function bin(lv, isBid) { var m = {}; lv.forEach(function (l) { if (l[0] < lo || l[0] > hi) return; var k = isBid ? Math.floor(l[0] / bs) * bs : Math.ceil(l[0] / bs) * bs; k = +k.toFixed(8); m[k] = (m[k] || 0) + l[1]; }); return Object.keys(m).map(function (k) { return [+k, +m[k].toPrecision(5)]; }); }
+    return { t: t, mid: mid, bs: bs, b: bin(bids, true), a: bin(asks, false) };
+  }
+  function niceStep(range, n) { var raw = range / (n || 6), p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+
+  // ---------- risk ----------
+  // size so that the loss at the stop INCLUDING entry+exit taker fees and slippage on both fills equals equity*risk%
+  function positionSize(equity, riskPct, entry, sl, feePct, slipBps) {
+    var riskAmt = equity * riskPct / 100, R = Math.abs(entry - sl), f = feePct / 100, s = slipBps / 1e4;
+    if (!(R > 0) || !(entry > 0)) return null;
+    var perUnit = R + entry * s + sl * s + (entry + sl) * f; // worst-case loss per coin at the stop
+    var qty = riskAmt / perUnit;
+    return { qty: qty, notional: qty * entry, riskAmt: riskAmt, perUnit: perUnit, estFees: qty * (entry + sl) * f, estSlip: qty * (entry + sl) * s, R: R, lev: qty * entry / equity };
+  }
+
+  // ---------- CHoCH + BOS + Retest engine ----------
+  var DEF = { N: 3, sweepTTL: 40, stepTTL: 40, retestTTL: 25, retestTol: 0.15, cvdBars: 5, absWick: 0.5, absVol: 1.2, spikeK: 1.8, atrBuf: 0.25, maxRiskATR: 5, maxRiskPct: 3, minRiskPct: 0.05, oiEps: 0.05 };
+  var STEP_NAMES = ['Liquidity sweep', 'Absorption / pressure', 'CHoCH', 'BOS', 'Retest', 'CVD + volume confirm', 'OI evidence', 'Stop loss defined'];
+  function blankSide() { return { stage: 0, sweep: null, abs: null, choch: null, bos: null, retest: null, conf: null, oi: null, sl: null, note: '' }; }
+  // Runs bar by bar over CLOSED candles cs[0..n-1]; at bar i it only reads cs[0..i] (and OI points with t <= cs[i].T).
+  // opts.oi: sorted [{t, oi}] or null. opts.book(side, i): optional live-only bonus {ok, text} for the LAST bar.
+  function runEngine(cs, opts) {
+    var o = Object.assign({}, DEF, opts || {}), n = cs.length, N = o.N, oiS = o.oi || null;
+    var swings = [], events = [], signals = [], lastH = null, lastL = null, prevH = null, prevL = null, lastBreak = null, cvd = 0, cvdArr = [];
+    var L = blankSide(), S = blankSide(), brokenH = {}, brokenL = {}, sweptH = {}, sweptL = {};
+    function volAvg(i) { return sma(cs, i - 1, 20, function (c) { return c.v; }); }
+    function sumD(a, b) { var s = 0; for (var j = Math.max(0, a); j <= b; j++) s += cs[j].d; return s; }
+    function oiEv(fromI, i, dir) {
+      if (!oiS) return { ok: false, na: true, pts: 0, text: 'OI history unavailable' };
+      var a = oiAt(oiS, cs[fromI].T), b = oiAt(oiS, cs[i].T);
+      if (!a || !b || a === b) return { ok: false, na: true, pts: 0, text: 'OI history unavailable for this window' };
+      var dp = (cs[i].c - cs[fromI].c) / cs[fromI].c * 100, doi = (b.oi - a.oi) / a.oi * 100, it = oiInterpret(dp, doi, o.oiEps), pts = 0;
+      if (dir === 'long') pts = it.code === 'new_longs' ? 15 : it.code === 'short_covering' ? 5 : 0;
+      else pts = it.code === 'new_shorts' ? 15 : it.code === 'long_liquidation' ? 5 : 0;
+      return { ok: pts > 0, pts: pts, dp: dp, doi: doi, code: it.code, text: it.text + ' (price ' + fmtPct(dp) + ', OI ' + fmtPct(doi) + ')' };
+    }
+    function step(i) {
+      var c = cs[i]; cvd += c.d; cvdArr.push(cvd);
+      // confirm swing at j = i - N
+      var j = i - N;
+      if (j >= N) {
+        var sw = swingAt(cs.slice(Math.max(0, j - N), i + 1), Math.min(N, j), N);
+        if (sw) {
+          if (sw.indexOf('H') >= 0) { var sh = { i: j, type: 'H', price: cs[j].h, conf: i }; swings.push(sh); prevH = lastH; lastH = sh; }
+          if (sw.indexOf('L') >= 0) { var sl = { i: j, type: 'L', price: cs[j].l, conf: i }; swings.push(sl); prevL = lastL; lastL = sl; }
+        }
+      }
+      var ctxDown = lastBreak === 'down' || (lastH && prevH && lastH.price < prevH.price);
+      var ctxUp = lastBreak === 'up' || (lastL && prevL && lastL.price > prevL.price);
+      var atrv = atr(cs, i, 14), va = volAvg(i);
+      side(i, c, 'long', L, ctxDown, atrv, va);
+      side(i, c, 'short', S, ctxUp, atrv, va);
+      // structural breaks (close beyond last confirmed swing)
+      if (lastH && !brokenH[lastH.i] && c.c > lastH.price) { brokenH[lastH.i] = 1; lastBreak = 'up'; }
+      if (lastL && !brokenL[lastL.i] && c.c < lastL.price) { brokenL[lastL.i] = 1; lastBreak = 'down'; }
+    }
+    function side(i, c, dir, st, ctxAgainst, atrv, va) {
+      var up = dir === 'long', sw = up ? lastL : lastH, swept = up ? sweptL : sweptH;
+      // invalidation / expiry
+      if (st.stage > 0) {
+        var ttl = st.stage === 1 ? o.sweepTTL : st.stage === 3 ? o.retestTTL : o.stepTTL, since = i - (st.stage === 1 ? st.sweep.i : st.stage === 2 ? st.choch.i : st.bos.i);
+        var beyond = up ? c.c < st.sweep.extreme : c.c > st.sweep.extreme;
+        var failRetest = st.stage === 3 && (up ? c.c < st.bos.level * (1 - 3 * o.retestTol / 100) : c.c > st.bos.level * (1 + 3 * o.retestTol / 100));
+        if (since > ttl || beyond || failRetest) { events.push({ i: i, type: 'reset', side: dir, why: beyond ? 'closed beyond sweep extreme' : failRetest ? 'retest failed' : 'timed out at ' + STEP_NAMES[st.stage === 1 ? 2 : st.stage === 2 ? 3 : 4] }); reset(st); }
+      }
+      // 1) sweep of the most recent confirmed swing (wick beyond, close back inside)
+      if (sw && !swept[sw.i] && (up ? c.l < sw.price && c.c > sw.price : c.h > sw.price && c.c < sw.price) && st.stage <= 1) {
+        swept[sw.i] = 1; reset(st);
+        var rng = c.h - c.l, wick = up ? Math.min(c.o, c.c) - c.l : c.h - Math.max(c.o, c.c);
+        st.stage = 1; st.sweep = { i: i, level: sw.price, swing: sw.i, extreme: up ? c.l : c.h, wickRatio: rng > 0 ? wick / rng : 0, volRatio: va > 0 ? c.v / va : NaN, spike: isSpike(cs, i, o.spikeK, 20), ctx: !!ctxAgainst, chochLevel: up ? (lastH ? lastH.price : null) : (lastL ? lastL.price : null), chochSwing: up ? (lastH ? lastH.i : null) : (lastL ? lastL.i : null) };
+        events.push({ i: i, type: 'sweep', side: dir, level: sw.price, extreme: st.sweep.extreme });
+        return;
+      }
+      if (st.stage === 1) {
+        // keep the deepest extreme while waiting
+        if (up ? c.l < st.sweep.extreme : c.h > st.sweep.extreme) st.sweep.extreme = up ? c.l : c.h;
+        // 2) absorption / pressure over sweep bar .. +2
+        var dd = sumD(st.sweep.i, Math.min(st.sweep.i + 2, i)), sb = cs[st.sweep.i];
+        var absorb = st.sweep.wickRatio >= o.absWick && st.sweep.volRatio >= o.absVol, press = up ? dd > 0 : dd < 0;
+        st.abs = { ok: absorb || press, absorb: absorb, press: press, delta: dd, wickRatio: st.sweep.wickRatio, volRatio: st.sweep.volRatio };
+        // 3) CHoCH: first close through the last opposite swing, only if structure was running the other way
+        if (st.sweep.chochLevel != null && (up ? c.c > st.sweep.chochLevel : c.c < st.sweep.chochLevel)) {
+          if (st.sweep.ctx && st.abs.ok) { st.stage = 2; st.choch = { i: i, level: st.sweep.chochLevel }; events.push({ i: i, type: 'choch', side: dir, level: st.sweep.chochLevel }); }
+          else { events.push({ i: i, type: 'reset', side: dir, why: !st.sweep.ctx ? 'break was not against prevailing structure (no CHoCH)' : 'no absorption / pressure after sweep' }); reset(st); }
+        }
+        return;
+      }
+      if (st.stage === 2) {
+        // 4) BOS: close beyond the first swing (same direction) confirmed after the CHoCH impulse
+        var cand = null;
+        for (var k = swings.length - 1; k >= 0; k--) { var s = swings[k]; if (s.i < st.choch.i - 0) break; if (s.type === (up ? 'H' : 'L')) cand = s; }
+        if (cand && (up ? c.c > cand.price : c.c < cand.price)) { st.stage = 3; st.bos = { i: i, level: cand.price, swing: cand.i }; events.push({ i: i, type: 'bos', side: dir, level: cand.price }); }
+        else st.bosWait = cand ? cand.price : null;
+        return;
+      }
+      if (st.stage === 3 && i > st.bos.i) {
+        // 5) retest: price comes back to the broken level (within tol) and holds
+        var lv = st.bos.level, tol = o.retestTol / 100;
+        var touch = up ? c.l <= lv * (1 + tol) && c.c >= lv * (1 - tol) : c.h >= lv * (1 - tol) && c.c <= lv * (1 + tol);
+        if (!touch) return;
+        st.retest = { i: i, level: lv };
+        // 6) CVD + actual volume confirmation on closed data
+        var roll = sumD(i - o.cvdBars + 1, i), buyFrac = c.v > 0 ? c.tb / c.v : 0.5;
+        var conf = up ? c.d > 0 && roll > 0 : c.d < 0 && roll < 0;
+        st.conf = { ok: conf, barDelta: c.d, roll: roll, buyFrac: buyFrac };
+        // 7) OI evidence (scoring only)
+        st.oi = oiEv(st.sweep.i, i, dir);
+        // 8) stop loss beyond structure: protective swing after CHoCH, else sweep extreme; plus ATR buffer
+        var prot = null;
+        for (var q = swings.length - 1; q >= 0; q--) { var z = swings[q]; if (z.i < st.choch.i) break; if (z.type === (up ? 'L' : 'H') && (up ? z.price < c.c : z.price > c.c)) { prot = z; break; } }
+        var base = prot ? prot.price : st.sweep.extreme, buf = o.atrBuf * atrv, slp = up ? base - buf : base + buf, riskPct = Math.abs(c.c - slp) / c.c * 100;
+        var riskATR = atrv > 0 ? Math.abs(c.c - slp) / atrv : 0;
+        st.sl = { ok: (up ? slp < c.c : slp > c.c) && riskPct <= o.maxRiskPct && riskPct >= o.minRiskPct && riskATR <= o.maxRiskATR, price: slp, base: prot ? 'swing ' + (up ? 'low' : 'high') + ' after CHoCH' : 'sweep extreme', riskPct: riskPct, riskATR: riskATR };
+        if (!conf) { st.note = 'retest without CVD/volume confirmation, waiting'; return; }
+        if (!st.sl.ok) { events.push({ i: i, type: 'reset', side: dir, why: 'stop loss too wide/invalid (' + riskPct.toFixed(2) + '%, ' + riskATR.toFixed(1) + '× ATR)' }); reset(st); return; }
+        // signal
+        var e = c.c, R = Math.abs(e - slp), sig = { i: i, t: c.t, T: c.T, side: dir, entryRef: e, sl: slp, tp1: up ? e + 2 * R : e - 2 * R, tp2: up ? e + 3 * R : e - 3 * R, R: R,
+          sweep: Object.assign({}, st.sweep), abs: st.abs, choch: st.choch, bos: st.bos, retest: st.retest, conf: st.conf, oi: st.oi, slInfo: st.sl };
+        var bd = [{ k: 'All required conditions (sweep, absorption/pressure, CHoCH, BOS, retest, CVD+volume, SL)', pts: 60 }];
+        bd.push({ k: 'OI evidence: ' + st.oi.text, pts: st.oi.pts });
+        bd.push({ k: 'Sweep candle volume spike (' + (isFinite(st.sweep.volRatio) ? st.sweep.volRatio.toFixed(2) + '× avg' : 'n/a') + ')', pts: st.sweep.spike ? 5 : 0 });
+        bd.push({ k: 'Absorption candle at sweep (wick ' + (st.sweep.wickRatio * 100).toFixed(0) + '%, vol ' + (isFinite(st.sweep.volRatio) ? st.sweep.volRatio.toFixed(2) : 'n/a') + '×)', pts: st.abs.absorb ? 5 : 0 });
+        bd.push({ k: 'Retest candle ' + (up ? 'buy' : 'sell') + ' share ' + ((up ? buyFrac : 1 - buyFrac) * 100).toFixed(0) + '% (≥ 55% scores)', pts: (up ? buyFrac : 1 - buyFrac) >= 0.55 ? 5 : 0 });
+        var bk = o.book && i === n - 1 ? o.book(dir) : null;
+        bd.push({ k: 'Order book (live only): ' + (bk ? bk.text : 'not used'), pts: bk && bk.ok ? 10 : 0 });
+        sig.breakdown = bd; sig.score = bd.reduce(function (a, b) { return a + b.pts; }, 0);
+        signals.push(sig); events.push({ i: i, type: 'signal', side: dir, level: e });
+        reset(st);
+      }
+    }
+    function reset(st) { var k = blankSide(); for (var x in k) st[x] = k[x]; delete st.bosWait; }
+    for (var i = 0; i < n; i++) step(i);
+    return { swings: swings, events: events, signals: signals, long: L, short: S, cvd: cvdArr, lastBreak: lastBreak, lastH: lastH, lastL: lastL };
+  }
+  // checklist rows for the current (in-progress) state of one side
+  function checklist(st, dir, lastSignal) {
+    var up = dir === 'long', rows = [];
+    function r(name, req, ok, val) { rows.push({ name: name, req: req, ok: ok, val: val }); }
+    var sw = st.sweep;
+    r('1. Liquidity sweep ' + (up ? 'below swing low' : 'above swing high'), true, !!sw, sw ? 'level ' + fmtPrice(sw.level) + ', wick to ' + fmtPrice(sw.extreme) : 'none active');
+    r('2. ' + (up ? 'Bullish' : 'Bearish') + ' absorption or ' + (up ? 'buying' : 'selling') + ' pressure', true, !!(st.abs && st.abs.ok), st.abs ? 'Δ ' + fmtQty(st.abs.delta) + ', wick ' + (st.abs.wickRatio * 100).toFixed(0) + '%, vol ' + (isFinite(st.abs.volRatio) ? st.abs.volRatio.toFixed(2) + '×' : 'n/a') : '—');
+    r('3. ' + (up ? 'Bullish' : 'Bearish') + ' CHoCH', true, !!st.choch, st.choch ? 'closed ' + (up ? 'above ' : 'below ') + fmtPrice(st.choch.level) : sw ? (sw.chochLevel != null ? 'needs close ' + (up ? '> ' : '< ') + fmtPrice(sw.chochLevel) + (sw.ctx ? '' : ' (structure not ' + (up ? 'bearish' : 'bullish') + ' before sweep)') : 'no opposite swing yet') : '—');
+    r('4. ' + (up ? 'Bullish' : 'Bearish') + ' BOS', true, !!st.bos, st.bos ? 'closed ' + (up ? 'above ' : 'below ') + fmtPrice(st.bos.level) : st.choch ? (st.bosWait ? 'needs close ' + (up ? '> ' : '< ') + fmtPrice(st.bosWait) : 'waiting for a confirmed swing after CHoCH') : '—');
+    r('5. Retest of broken structure', true, !!st.retest, st.retest ? 'touched ' + fmtPrice(st.retest.level) : st.bos ? 'waiting near ' + fmtPrice(st.bos.level) : '—');
+    r('6. ' + (up ? 'Positive' : 'Negative') + ' CVD + actual ' + (up ? 'buying' : 'selling') + ' volume', true, !!(st.conf && st.conf.ok), st.conf ? 'bar Δ ' + fmtQty(st.conf.barDelta) + ', ' + 'rolling Δ ' + fmtQty(st.conf.roll) : '—');
+    r('7. OI supporting evidence (scoring, not required)', false, !!(st.oi && st.oi.ok), st.oi ? st.oi.text : '—');
+    r('8. Stop loss defined beyond structure', true, !!(st.sl && st.sl.ok), st.sl ? fmtPrice(st.sl.price) + ' (' + st.sl.base + ', ' + st.sl.riskPct.toFixed(2) + '%, ' + st.sl.riskATR.toFixed(1) + '× ATR)' : '—');
+    return rows;
+  }
+
+  // ---------- backtest ----------
+  // Signals come from runEngine on CLOSED bars; entry = NEXT bar open (+ adverse slippage). SL checked first if a bar hits both.
+  // mode 'split': 50% at TP1 (1:2), stop to break-even, 50% at TP2 (1:3); 'tp1' / 'tp2': all at that target.
+  function backtest(cs, signals, o) {
+    o = Object.assign({ equity: 10000, riskPct: 1, feePct: 0.05, slipBps: 2, mode: 'split' }, o || {});
+    var eq = o.equity, trades = [], curve = [{ t: cs.length ? cs[0].t : 0, eq: eq }], busyUntil = -1, f = o.feePct / 100, s = o.slipBps / 1e4;
+    signals.forEach(function (sg) {
+      var ei = sg.i + 1; if (ei >= cs.length || sg.i <= busyUntil) return;
+      var up = sg.side === 'long', open = cs[ei].o, entry = up ? open * (1 + s) : open * (1 - s), sl = sg.sl;
+      if (up ? entry <= sl : entry >= sl) { trades.push({ side: sg.side, sigI: sg.i, skipped: 'gap beyond stop' }); return; }
+      var R = Math.abs(entry - sl), tp1 = up ? entry + 2 * R : entry - 2 * R, tp2 = up ? entry + 3 * R : entry - 3 * R;
+      var ps = positionSize(eq, o.riskPct, open, sl, o.feePct, o.slipBps), qty = ps.qty, rem = 1, pnl = -qty * entry * f, exits = [], stop = sl, k, done = false;
+      for (k = ei; k < cs.length && !done; k++) {
+        var c = cs[k];
+        var hitS = up ? c.l <= stop : c.h >= stop, t1 = o.mode === 'tp2' ? false : rem === 1 && (up ? c.h >= tp1 : c.l <= tp1), t2 = (o.mode !== 'tp1') && (up ? c.h >= tp2 : c.l <= tp2);
+        if (hitS) { var px = up ? stop * (1 - s) : stop * (1 + s); pnl += (up ? px - entry : entry - px) * qty * rem - px * qty * rem * f; exits.push({ i: k, px: px, frac: rem, why: stop === sl ? 'SL' : 'BE' }); rem = 0; done = true; break; }
+        if (o.mode === 'tp1' && t1) { pnl += (up ? tp1 - entry : entry - tp1) * qty - tp1 * qty * f; exits.push({ i: k, px: tp1, frac: 1, why: 'TP1' }); rem = 0; done = true; break; }
+        if (o.mode === 'tp2' && t2) { pnl += (up ? tp2 - entry : entry - tp2) * qty - tp2 * qty * f; exits.push({ i: k, px: tp2, frac: 1, why: 'TP2' }); rem = 0; done = true; break; }
+        if (o.mode === 'split') {
+          if (t1) { pnl += (up ? tp1 - entry : entry - tp1) * qty * 0.5 - tp1 * qty * 0.5 * f; exits.push({ i: k, px: tp1, frac: 0.5, why: 'TP1' }); rem = 0.5; stop = entry; continue; } // TP2/BE checked from next bar
+          if (rem === 0.5 && t2) { pnl += (up ? tp2 - entry : entry - tp2) * qty * 0.5 - tp2 * qty * 0.5 * f; exits.push({ i: k, px: tp2, frac: 0.5, why: 'TP2' }); rem = 0; done = true; break; }
+        }
+      }
+      var endI = done ? k : cs.length - 1;
+      if (!done) { var lc = cs[cs.length - 1].c; pnl += (up ? lc - entry : entry - lc) * qty * rem - lc * qty * rem * f; exits.push({ i: endI, px: lc, frac: rem, why: 'open at end (marked to last close)' }); }
+      eq += pnl; busyUntil = endI;
+      trades.push({ side: sg.side, sigI: sg.i, entryI: ei, exitI: endI, t: cs[ei].t, entry: entry, sl: sl, tp1: tp1, tp2: tp2, qty: qty, pnl: pnl, rMult: pnl / ps.riskAmt, plannedRR: o.mode === 'tp1' ? 2 : o.mode === 'tp2' ? 3 : 2.5, exits: exits, eqAfter: eq, score: sg.score, open: !done });
+      curve.push({ t: cs[endI].t, eq: eq });
+    });
+    return { trades: trades, curve: curve, stats: stats(trades.filter(function (t) { return !t.skipped; }), o.equity) };
+  }
+  function stats(trades, eq0) {
+    function part(ts) {
+      var w = ts.filter(function (t) { return t.pnl > 0; }), gp = w.reduce(function (a, t) { return a + t.pnl; }, 0), gl = ts.filter(function (t) { return t.pnl <= 0; }).reduce(function (a, t) { return a - t.pnl; }, 0);
+      return { n: ts.length, wins: w.length, winRate: ts.length ? w.length / ts.length * 100 : NaN, net: gp - gl, pf: gl > 0 ? gp / gl : gp > 0 ? Infinity : NaN, avgR: ts.length ? ts.reduce(function (a, t) { return a + t.rMult; }, 0) / ts.length : NaN };
+    }
+    var all = part(trades), eq = eq0, peak = eq0, mdd = 0, mddPct = 0;
+    trades.forEach(function (t) { eq += t.pnl; if (eq > peak) peak = eq; if (peak - eq > mdd) mdd = peak - eq; if ((peak - eq) / peak * 100 > mddPct) mddPct = (peak - eq) / peak * 100; });
+    var avgW = all.wins ? trades.filter(function (t) { return t.pnl > 0; }).reduce(function (a, t) { return a + t.pnl; }, 0) / all.wins : NaN, ls = trades.length - all.wins, avgL = ls ? trades.filter(function (t) { return t.pnl <= 0; }).reduce(function (a, t) { return a - t.pnl; }, 0) / ls : NaN;
+    return Object.assign(all, { maxDD: mdd, maxDDPct: mddPct, endEq: eq, retPct: (eq - eq0) / eq0 * 100, avgPlannedRR: trades.length ? trades.reduce(function (a, t) { return a + t.plannedRR; }, 0) / trades.length : NaN, avgWinLoss: avgW / avgL, long: part(trades.filter(function (t) { return t.side === 'long'; })), short: part(trades.filter(function (t) { return t.side === 'short'; })) });
+  }
+
+  // ---------- deterministic DEMO scenario (scripted, not market data) ----------
+  // Builds candles from waypoints with deterministic wiggle; designed to walk through one LONG and one SHORT setup.
+  function demoScenario() {
+    var path = [
+      // [bars, target close, taker-buy fraction]: downtrend with lower highs
+      [8, 100, 0.5], [5, 97, 0.4], [4, 98.2, 0.56], [4, 96.5, 0.4], [4, 97.6, 0.56], [3, 96.9, 0.45],
+      ['sweepL', 95.9, 96.7, 0.62],                 // LONG 1: wick below the swing low, close back above (buyers absorb)
+      [3, 98.3, 0.66],                              // 3: close above the last lower high = bullish CHoCH
+      [2, 98.8, 0.62], [4, 98.1, 0.44], [3, 99.4, 0.64], // higher low, 4: close above the impulse high = BOS
+      [3, 99.15, 0.44], ['retestL', 98.95, 99.3, 0.68],  // 5-6: retest of the broken level with buyers in control
+      [6, 104.2, 0.6], [4, 103.4, 0.45], [5, 105.2, 0.6], [4, 104.2, 0.44], [3, 104.8, 0.52],
+      ['sweepH', 105.7, 105.0, 0.36],               // SHORT 1: wick above the swing high, close back below (sellers absorb)
+      [3, 103.6, 0.34],                             // 3: close below the last higher low = bearish CHoCH
+      [2, 103.1, 0.38], [4, 103.8, 0.56], [3, 102.5, 0.36], // lower high, 4: close below the impulse low = BOS
+      [3, 102.8, 0.56], ['retestH', 102.98, 102.7, 0.32],  // 5-6: retest from below with sellers in control
+      [6, 100.4, 0.4], [6, 98.2, 0.42], [4, 98.8, 0.5]
+    ];
+    var cs = [], t = Date.UTC(2026, 0, 5, 1, 0, 0), iv = 3e5, prev = 100, k = 0;
+    function push(o, c, h, l, bf, v) { cs.push({ t: t, o: o, h: h, l: l, c: c, v: v, q: v * c, n: 100, tb: v * bf, tq: v * bf * c, T: t + iv - 1, d: v * (2 * bf - 1) }); t += iv; k++; }
+    path.forEach(function (seg) {
+      if (typeof seg[0] === 'string') {
+        var kind = seg[0], ext = seg[1], cl = seg[2], bf = seg[3], o = prev, isL = kind === 'sweepL' || kind === 'retestL';
+        if (kind === 'sweepL') push(o, cl, Math.max(o, cl) + 0.1, ext, bf, 260);
+        else if (kind === 'sweepH') push(o, cl, ext, Math.min(o, cl) - 0.1, bf, 260);
+        else if (kind === 'retestL') push(o, cl, Math.max(o, cl) + 0.08, ext, bf, 140);
+        else push(o, cl, ext, Math.min(o, cl) - 0.08, bf, 140);
+        prev = cl; return;
+      }
+      var nb = seg[0], tgt = seg[1], bfr = seg[2], start = prev;
+      for (var b = 1; b <= nb; b++) {
+        var c = start + (tgt - start) * b / nb, o = prev;
+        var h = Math.max(o, c) + 0.12 + 0.05 * Math.abs(Math.sin(k)), l = Math.min(o, c) - 0.12 - 0.05 * Math.abs(Math.cos(k));
+        push(o, c, h, l, bfr, 100 + 20 * Math.abs(Math.sin(k * 0.7)));
+        prev = c;
+      }
+    });
+    // scripted OI: rises into the long leg, rises into the short leg
+    var oi = cs.map(function (c, i) { return { t: c.T, oi: 50000 + i * 40 + (i > 60 ? (i - 60) * 30 : 0) }; });
+    return { candles: cs, oi: oi };
+  }
+
+  return { KL: KL, TF: TF, fmtTime: fmtTime, fmtHM: fmtHM, fmtDateTime: fmtDateTime, fmtUsd: fmtUsd, fmtPrice: fmtPrice, fmtPct: fmtPct, fmtQty: fmtQty, fmtCountdown: fmtCountdown, backoff: backoff,
+    parseKline: parseKline, parseWsKline: parseWsKline, sma: sma, atr: atr, cvdSeries: cvdSeries, isSpike: isSpike, spikes: spikes, swingAt: swingAt, findSwings: findSwings, divergence: divergence,
+    oiAt: oiAt, oiChange: oiChange, oiInterpret: oiInterpret, concentration: concentration, median: median, detectWalls: detectWalls, trackWalls: trackWalls, binBook: binBook, niceStep: niceStep,
+    positionSize: positionSize, DEF: DEF, STEP_NAMES: STEP_NAMES, runEngine: runEngine, checklist: checklist, backtest: backtest, stats: stats, demoScenario: demoScenario };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = FD;
+</script>
+<script>
+(function () {
+'use strict';
+var FAPI = 'https://fapi.binance.com', MWS = 'wss://fstream.binance.com/market/stream?streams=', PWS = 'wss://fstream.binance.com/public/stream?streams=';
+var CAP = { candles: 1500, oiSamples: 1440, wallEvents: 200, heatHours: 24, trades: 5000 };
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function load(k, d) { try { var v = JSON.parse(localStorage.getItem('fd:' + k)); return v == null ? d : v; } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem('fd:' + k, JSON.stringify(v)); } catch (e) {} }
+var SET_DEF = { equity: 10000, riskPct: 1, feePct: 0.05, slipBps: 2, N: 3, retestTol: 0.15, cvdBars: 5, atrBuf: 0.25, maxRiskATR: 5, wallK: 10, wallMin: 500000, wallMax: 8, wallRange: 1, bookEvery: 10, heatOn: true, walls: true, struct: true, sigOn: true, vol: true, cvdPane: true };
+var S = Object.assign({}, SET_DEF, load('settings', {}));
+var st = { sym: load('sym', 'BTCUSDT'), tf: load('tf', '5m'), mode: 'live' };
+var skew = 0; function nowS() { return Date.now() + skew; }
+
+// ---------- live state ----------
+var D; // per-symbol data
+function freshData() {
+  return { cs: [], cur: null, ticker: null, ver: 0, oiNow: null, oiSamples: [], oiHist5: [], oiHistTf: [], lastAggId: null, sessStart: Date.now(), sessBuy: 0, sessSell: 0, sessDelta: {}, tradeBins: new Map(),
+    book: null, bookT: 0, top: null, walls: [], wallEvents: [], heat: [], heatSince: null, bs: 0, engine: null, lastSigShown: null, lastPrice: 0, err: {} };
+}
+D = freshData();
+
+// ---------- sockets ----------
+function Sock(name, urlFn, onMsg, staleMs, onOpen) { this.name = name; this.urlFn = urlFn; this.onMsg = onMsg; this.staleMs = staleMs; this.onOpen = onOpen; this.attempt = 0; this.status = 'off'; this.reconnects = 0; this.ws = null; this.lastMsg = 0; this.openedAt = 0; this.timer = 0; }
+Sock.prototype.start = function () {
+  var self = this; this.stop(); var url = this.urlFn(); if (!url) { this.status = 'off'; return; }
+  var ws; try { ws = new WebSocket(url); } catch (e) { return this.retry(); }
+  this.ws = ws; this.status = 'connecting'; this.openedAt = Date.now();
+  ws.onopen = function () { if (self.ws !== ws) return; self.attempt = 0; self.status = 'live'; self.lastMsg = Date.now(); if (self.onOpen) self.onOpen(); };
+  ws.onmessage = function (ev) { if (self.ws !== ws) return; self.lastMsg = Date.now(); self.status = 'live'; try { self.onMsg(JSON.parse(ev.data)); } catch (e) { console.warn(e); } };
+  ws.onclose = function () { if (self.ws === ws) { self.ws = null; self.retry(); } };
+  ws.onerror = function () { try { ws.close(); } catch (e) {} };
+};
+Sock.prototype.retry = function () { var self = this; this.status = 'reconnecting'; this.reconnects++; clearTimeout(this.timer); this.timer = setTimeout(function () { self.start(); }, FD.backoff(this.attempt++)); };
+Sock.prototype.stop = function () { clearTimeout(this.timer); var w = this.ws; this.ws = null; this.status = 'off'; if (w) { w.onclose = w.onmessage = w.onopen = w.onerror = null; try { w.close(); } catch (e) {} } };
+Sock.prototype.check = function () { if (this.ws && Date.now() - Math.max(this.lastMsg, this.openedAt) > this.staleMs) { this.stop(); this.retry(); } };
+Sock.prototype.isLive = function () { return this.status === 'live' && Date.now() - this.lastMsg < this.staleMs; };
+function getJSON(url) {
+  var ac = new AbortController(), to = setTimeout(function () { ac.abort(); }, 12000);
+  return fetch(url, { cache: 'no-store', signal: ac.signal }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).finally(function () { clearTimeout(to); });
+}
+var mk = new Sock('market', function () { if (st.mode !== 'live') return null; var s = st.sym.toLowerCase(); return MWS + [s + '@kline_' + st.tf, s + '@aggTrade', s + '@ticker'].join('/'); }, onMarket, 20000, function () { gapFillTrades(); refreshKlines(5); });
+var dp = new Sock('depth', function () { if (st.mode !== 'live') return null; return PWS + st.sym.toLowerCase() + '@depth20@500ms'; }, onDepth, 20000);
+var lastData = 0;
+
+function onMarket(m) {
+  var d = m.data || m; lastData = Date.now(); if (st.mode !== 'live') return;
+  if (d.e === 'kline' && d.s === st.sym && d.k.i === st.tf) onKline(FD.parseWsKline(d.k));
+  else if (d.e === 'aggTrade' && d.s === st.sym) onTrade(+d.a, +d.p, +d.q, !!d.m, +d.T);
+  else if (d.e === '24hrTicker' && d.s === st.sym) { D.ticker = { last: +d.c, chg: +d.P, h: +d.h, l: +d.l, qv: +d.q }; D.lastPrice = +d.c; }
+}
+function onKline(k) {
+  if (!D.cs.length) return; // history not loaded yet
+  var last = D.cs[D.cs.length - 1];
+  if (k.t <= last.t) return;
+  if (k.x) { D.cs.push(k); if (D.cs.length > CAP.candles) D.cs.shift(); D.cur = null; runLive(); }
+  else D.cur = k;
+  D.lastPrice = k.c; reqDraw();
+}
+function onTrade(id, p, q, buyerMaker, T) {
+  if (D.lastAggId != null && id <= D.lastAggId) return;
+  D.lastAggId = id; D.lastPrice = p;
+  var buy = !buyerMaker; // m=true: buyer was maker -> aggressor SOLD
+  if (buy) D.sessBuy += q; else D.sessSell += q;
+  var iv = FD.TF[st.tf], ct = Math.floor(T / iv) * iv; D.sessDelta[ct] = (D.sessDelta[ct] || 0) + (buy ? q : -q);
+  var key = Math.round(p / D.tick) * D.tick; key = +key.toFixed(8); D.tradeBins.set(key, (D.tradeBins.get(key) || 0) + q);
+  if (D.tradeBins.size > CAP.trades) D.tradeBins.delete(D.tradeBins.keys().next().value);
+}
+function gapFillTrades() {
+  if (D.lastAggId == null) return;
+  var pages = 0, sym = st.sym, ver = D.ver;
+  (function page() {
+    getJSON(FAPI + '/fapi/v1/aggTrades?symbol=' + sym + '&fromId=' + (D.lastAggId + 1) + '&limit=1000').then(function (arr) {
+      if (ver !== D.ver) return; arr.forEach(function (t) { onTrade(+t.a, +t.p, +t.q, !!t.m, +t.T); }); pages++;
+      if (arr.length === 1000 && pages < 5) page(); else if (arr.length === 1000) D.err.tradesGap = 'trade gap after reconnect was larger than 5000 trades; session CVD may miss some trades';
+    }).catch(function () {});
+  })();
+}
+function onDepth(m) {
+  var d = m.data || m; if (st.mode !== 'live' || d.s !== st.sym) return; lastData = Date.now();
+  var bids = d.b.map(function (x) { return [+x[0], +x[1]]; }), asks = d.a.map(function (x) { return [+x[0], +x[1]]; });
+  if (!bids.length || !asks.length) return;
+  var mid = (bids[0][0] + asks[0][0]) / 2, bq = 0, aq = 0; bids.forEach(function (x) { bq += x[0] * x[1]; }); asks.forEach(function (x) { aq += x[0] * x[1]; });
+  D.top = { t: Date.now(), mid: mid, bid: bq, ask: aq, imb: (bq - aq) / (bq + aq), spread: asks[0][0] - bids[0][0], range: (asks[asks.length - 1][0] - bids[bids.length - 1][0]) / mid * 100 };
+}
+
+// ---------- REST loaders ----------
+function refreshKlines(limit) {
+  var ver = D.ver, sym = st.sym, tf = st.tf;
+  return getJSON(FAPI + '/fapi/v1/klines?symbol=' + sym + '&interval=' + tf + '&limit=' + limit).then(function (arr) {
+    if (ver !== D.ver) return;
+    var ks = arr.map(FD.parseKline), now = nowS(), closed = ks.filter(function (k) { return k.T < now; }), forming = ks.filter(function (k) { return k.T >= now; })[0];
+    if (limit > 50 || !D.cs.length) D.cs = closed.slice(-CAP.candles);
+    else { var lt = D.cs.length ? D.cs[D.cs.length - 1].t : 0, added = false; closed.forEach(function (k) { if (k.t > lt) { D.cs.push(k); added = true; } }); if (D.cs.length > CAP.candles) D.cs.splice(0, D.cs.length - CAP.candles); if (!added && limit <= 50) { if (forming) D.cur = forming; reqDraw(); return; } }
+    if (forming) D.cur = forming; D.err.klines = null; lastData = Date.now(); runLive(); reqDraw();
+  }).catch(function (e) { D.err.klines = 'klines unavailable (' + e.message + ')'; });
+}
+function refreshTicker() { var ver = D.ver; return getJSON(FAPI + '/fapi/v1/ticker/24hr?symbol=' + st.sym).then(function (t) { if (ver !== D.ver) return; D.ticker = { last: +t.lastPrice, chg: +t.priceChangePercent, h: +t.highPrice, l: +t.lowPrice, qv: +t.quoteVolume }; if (!D.lastPrice) D.lastPrice = +t.lastPrice; }).catch(function () {}); }
+function oiPeriod(tf) { return tf === '1m' ? '5m' : tf; }
+function loadOiHist(period, limit) { return getJSON(FAPI + '/futures/data/openInterestHist?symbol=' + st.sym + '&period=' + period + '&limit=' + limit).then(function (a) { return a.map(function (x) { return { t: +x.timestamp, oi: +x.sumOpenInterest, usd: +x.sumOpenInterestValue }; }).sort(function (a, b) { return a.t - b.t; }); }); }
+function refreshOiHist() {
+  var ver = D.ver, p = oiPeriod(st.tf);
+  var jobs = [loadOiHist('5m', 30).then(function (h) { if (ver === D.ver) D.oiHist5 = h; })];
+  jobs.push(p === '5m' ? Promise.resolve().then(function () { return loadOiHist('5m', 500); }).then(function (h) { if (ver === D.ver) D.oiHistTf = h; }) : loadOiHist(p, 500).then(function (h) { if (ver === D.ver) D.oiHistTf = h; }));
+  return Promise.all(jobs).then(function () { D.err.oiHist = null; runLive(); }).catch(function (e) { D.err.oiHist = 'OI history unavailable (' + e.message + ')'; });
+}
+var oiOkAt = 0;
+function sampleOi() {
+  var ver = D.ver;
+  return getJSON(FAPI + '/fapi/v1/openInterest?symbol=' + st.sym).then(function (r) {
+    if (ver !== D.ver) return; var p = { t: +r.time || Date.now(), oi: +r.openInterest }; D.oiNow = p; oiOkAt = Date.now();
+    var last = D.oiSamples[D.oiSamples.length - 1]; if (!last || p.t > last.t) D.oiSamples.push(p); if (D.oiSamples.length > CAP.oiSamples) D.oiSamples.shift(); D.err.oi = null;
+  }).catch(function (e) { D.err.oi = 'OI unavailable (' + e.message + ')'; });
+}
+var bookOkAt = 0, bookBusy = false;
+function sampleBook() {
+  if (bookBusy || st.mode !== 'live') return; bookBusy = true; var ver = D.ver, sym = st.sym;
+  getJSON(FAPI + '/fapi/v1/depth?symbol=' + sym + '&limit=1000').then(function (r) {
+    if (ver !== D.ver) return;
+    var bids = r.bids.map(function (x) { return [+x[0], +x[1]]; }), asks = r.asks.map(function (x) { return [+x[0], +x[1]]; }), t = Date.now();
+    if (!bids.length || !asks.length) return;
+    var mid = (bids[0][0] + asks[0][0]) / 2, lo = bids[bids.length - 1][0], hi = asks[asks.length - 1][0];
+    D.book = { t: t, mid: mid, bids: bids, asks: asks, lo: lo, hi: hi, c05: FD.concentration(bids, asks, mid, 0.5), c1: FD.concentration(bids, asks, mid, 1) };
+    var walls = FD.detectWalls(bids, asks, mid, { k: S.wallK, rangePct: S.wallRange, minNotional: S.wallMin, maxPerSide: S.wallMax });
+    var bm = new Map(), am = new Map(); bids.forEach(function (x) { bm.set(x[0], x[1]); }); asks.forEach(function (x) { am.set(x[0], x[1]); });
+    var tb = D.tradeBins, tick = D.tick;
+    var tr = FD.trackWalls(D.walls, walls, function (p) { var s = 0; for (var k = -1; k <= 1; k++) s += tb.get(+(Math.round(p / tick) * tick + k * tick).toFixed(8)) || 0; return s; }, function (p) { return p >= lo && p <= hi; }, t, { qtyAt: function (side, p) { return (side === 'bid' ? bm : am).get(p) || 0; } });
+    D.walls = tr.active; D.tradeBins = new Map();
+    tr.events.forEach(function (e) { if (e.type !== 'new' || D.wallEvents.length) { e.sym = sym; D.wallEvents.unshift(e); } });
+    if (D.wallEvents.length > CAP.wallEvents) D.wallEvents.length = CAP.wallEvents; wallsDirty = true;
+    if (!D.bs) D.bs = FD.niceStep(mid * 0.0004, 1);
+    var hs = FD.binBook(bids, asks, mid, D.bs, 1, t); hs.s = sym; D.heat.push(hs); pruneHeat(); heatPut(hs);
+    if (!D.heatSince) D.heatSince = t;
+    bookOkAt = t; D.err.book = null; reqDraw();
+  }).catch(function (e) { D.err.book = 'order book unavailable (' + e.message + ')'; }).finally(function () { bookBusy = false; });
+}
+function pruneHeat() { var cut = Date.now() - CAP.heatHours * 36e5, i = 0; while (i < D.heat.length && D.heat[i].t < cut) i++; if (i) D.heat.splice(0, i); }
+
+// ---------- IndexedDB for sampled order book ----------
+var idb = null;
+function idbOpen() {
+  return new Promise(function (res) {
+    if (!window.indexedDB) return res(null);
+    var rq; try { rq = indexedDB.open('flowdash', 1); } catch (e) { return res(null); }
+    rq.onupgradeneeded = function () { var db = rq.result; if (!db.objectStoreNames.contains('book')) db.createObjectStore('book', { keyPath: ['s', 't'] }); };
+    rq.onsuccess = function () { res(rq.result); }; rq.onerror = function () { res(null); };
+  });
+}
+function heatPut(h) { if (!idb) return; try { idb.transaction('book', 'readwrite').objectStore('book').put(h); } catch (e) {} }
+function heatLoad(sym) {
+  return new Promise(function (res) {
+    if (!idb) return res([]);
+    var out = [], since = Date.now() - CAP.heatHours * 36e5;
+    try {
+      var rq = idb.transaction('book').objectStore('book').openCursor(IDBKeyRange.bound([sym, since], [sym, Infinity]));
+      rq.onsuccess = function () { var c = rq.result; if (c) { out.push(c.value); c.continue(); } else res(out); }; rq.onerror = function () { res(out); };
+    } catch (e) { res(out); }
+  });
+}
+function heatPrune() { if (!idb) return; try { ['BTCUSDT', 'ETHUSDT'].forEach(function (s) { idb.transaction('book', 'readwrite').objectStore('book').delete(IDBKeyRange.bound([s, 0], [s, Date.now() - CAP.heatHours * 36e5])); }); } catch (e) {} }
+
+// ---------- engine ----------
+function engineOpts(oi, withBook) {
+  return { N: S.N, retestTol: S.retestTol, cvdBars: S.cvdBars, atrBuf: S.atrBuf, maxRiskATR: S.maxRiskATR, oi: oi && oi.length ? oi : null, book: withBook ? bookBonus : null };
+}
+function bookBonus(dir) {
+  var b = D.book; if (!b || Date.now() - b.t > 60000) return { ok: false, text: 'order book snapshot unavailable' };
+  var up = dir === 'long', c = b.c05, near = D.walls.filter(function (w) { return w.side === (up ? 'bid' : 'ask') && Math.abs(w.distPct) <= 0.5; });
+  var ok = up ? c.imb > 0.1 || near.length > 0 : c.imb < -0.1 || near.length > 0;
+  return { ok: ok, text: '±0.5% imbalance ' + (c.imb * 100).toFixed(0) + '%' + (near.length ? ', ' + (up ? 'bid' : 'ask') + ' wall ' + FD.fmtUsd(near[0].notional) + ' @ ' + FD.fmtPrice(near[0].price) : ', no ' + (up ? 'bid' : 'ask') + ' wall within 0.5%') };
+}
+function runLive() {
+  if (st.mode !== 'live' || !D.cs.length) return;
+  var oi = D.oiHistTf.slice(); // engine uses Binance OI history (period = timeframe, 5m for 1m)
+  D.engine = FD.runEngine(D.cs, engineOpts(oi, true));
+  uiDirty = true; reqDraw();
+}
+
+// ---------- demo ----------
+var demo = { data: null, k: 0, timer: 0, playing: true, cs: [], engine: null };
+function demoStart() {
+  st.mode = 'demo'; document.body.classList.add('demo'); mk.stop(); dp.stop();
+  demo.data = FD.demoScenario(); demo.k = 30; demo.playing = true; demoStep(); demoSchedule();
+  $('bDemo').classList.add('on'); chart.off = 0; uiDirty = true;
+}
+function demoStop() {
+  clearTimeout(demo.timer); st.mode = 'live'; document.body.classList.remove('demo'); $('bDemo').classList.remove('on'); demo.engine = null; switchMarket(true);
+}
+function demoSchedule() { clearTimeout(demo.timer); if (demo.playing && st.mode === 'demo') demo.timer = setTimeout(function () { if (demo.k < demo.data.candles.length) { demo.k++; demoStep(); demoSchedule(); } else { demo.playing = false; syncDemoBtns(); } }, +$('dSpeed').value); }
+function demoStep() {
+  demo.cs = demo.data.candles.slice(0, demo.k);
+  demo.engine = FD.runEngine(demo.cs, Object.assign(engineOpts(demo.data.oi.filter(function (p) { return p.t <= demo.cs[demo.cs.length - 1].T; }), false)));
+  $('dInfo').textContent = 'bar ' + demo.k + '/' + demo.data.candles.length; uiDirty = true; reqDraw(); syncDemoBtns();
+}
+function syncDemoBtns() { $('dPlay').textContent = demo.playing ? '⏸ Pause' : '▶ Play'; }
+
+// ---------- view helpers ----------
+function V() { // current view source
+  if (st.mode === 'demo') return { cs: demo.cs, cur: null, eng: demo.engine, demo: true };
+  return { cs: D.cs, cur: D.cur, eng: D.engine, demo: false };
+}
+var uiDirty = true, wallsDirty = true;
+function tag(kind, txt) { return '<span class="tag ' + kind + '">' + (txt || { real: 'REAL', cand: 'CANDLE', samp: 'SAMPLED', demo: 'DEMO', na: 'N/A' }[kind]) + '</span>'; }
+function kv(k, v, cls) { return '<span class="k">' + k + '</span><span class="v ' + (cls || '') + '">' + v + '</span>'; }
+function pctCls(x) { return x > 0 ? 'buy' : x < 0 ? 'sell' : ''; }
+function priceChange(cs, cur, winMs) {
+  var all = cur ? cs.concat([cur]) : cs; if (!all.length) return NaN; var last = all[all.length - 1], t = (cur ? Date.now() : last.T) - winMs;
+  for (var i = all.length - 1; i >= 0; i--) if (all[i].t <= t) return (last.c - all[i].c) / all[i].c * 100;
+  return NaN;
+}
+function renderSide() {
+  var v = V(), demoM = v.demo, cs = v.cs, last = cs[cs.length - 1];
+  // ---- OI
+  var h = '';
+  if (demoM) {
+    var oi = demo.data.oi.filter(function (p) { return p.t <= last.T; }), now = last.T;
+    h += kv('Open interest ' + tag('demo'), FD.fmtQty(oi[oi.length - 1].oi) + ' (scripted)');
+    [['5m', 3e5], ['15m', 9e5], ['1h', 36e5]].forEach(function (w) { var c = FD.oiChange(oi, now, w[1]), pc = priceChange(cs, null, w[1]); h += kv('OI Δ ' + w[0], c ? '<span class="' + pctCls(c.pct) + '">' + FD.fmtPct(c.pct) + '</span> · price ' + FD.fmtPct(pc) : 'n/a'); });
+    $('oiSub').innerHTML = tag('demo');
+  } else {
+    var on = D.oiNow, px = D.lastPrice || (last && last.c);
+    h += kv('Open interest ' + tag('real'), on ? FD.fmtQty(on.oi) + ' ' + st.sym.replace('USDT', '') + (px ? ' · ' + FD.fmtUsd(on.oi * px) : '') : '<span class="muted">unavailable</span>');
+    var c1 = FD.oiChange(D.oiSamples, Date.now(), 6e4);
+    h += kv('OI Δ 1m ' + tag('samp'), c1 ? '<span class="' + pctCls(c1.pct) + '">' + FD.fmtPct(c1.pct, 3) + '</span> · price ' + FD.fmtPct(priceChange(cs, D.cur, 6e4)) : '<span class="muted">collecting samples…</span>');
+    var hist = D.oiHist5.slice(); if (on && (!hist.length || on.t > hist[hist.length - 1].t)) hist.push(on);
+    [['5m', 3e5], ['15m', 9e5], ['1h', 36e5]].forEach(function (w) {
+      var c = FD.oiChange(hist, Date.now(), w[1]), pc = priceChange(cs, D.cur, w[1]), it = c ? FD.oiInterpret(pc, c.pct) : null;
+      h += kv('OI Δ ' + w[0] + ' ' + tag('real'), c ? '<span class="' + pctCls(c.pct) + '">' + FD.fmtPct(c.pct, 2) + '</span> · price <span class="' + pctCls(pc) + '">' + FD.fmtPct(pc) + '</span>' : '<span class="muted">unavailable</span>');
+      if (it && w[0] !== '15m') h += '<span class="full muted" style="font-size:11px">' + w[0] + ': ' + esc(it.text) + '</span>';
+    });
+    if (D.err.oi || D.err.oiHist) h += '<span class="full warn">' + esc(D.err.oi || D.err.oiHist) + '</span>';
+    $('oiSub').textContent = on ? 'updated ' + FD.fmtTime(on.t) : '';
+  }
+  $('oiKv').innerHTML = h;
+  // ---- Volume
+  h = '';
+  var spikeIdx = -1; for (var i = cs.length - 1; i >= Math.max(0, cs.length - 60); i--) if (FD.isSpike(cs, i, 2, 20)) { spikeIdx = i; break; }
+  var cvdC = v.eng ? v.eng.cvd[v.eng.cvd.length - 1] : NaN, lastD = last ? last.d : NaN;
+  if (!demoM) {
+    var bv = D.sessBuy, sv = D.sessSell, tot = bv + sv, base = st.sym.replace('USDT', '');
+    h += kv('Aggressive buy vol ' + tag('real'), '<span class="buy">' + FD.fmtQty(bv) + ' ' + base + '</span>');
+    h += kv('Aggressive sell vol ' + tag('real'), '<span class="sell">' + FD.fmtQty(sv) + ' ' + base + '</span>');
+    h += kv('Session CVD ' + tag('real'), '<span class="' + pctCls(bv - sv) + '">' + FD.fmtQty(bv - sv) + '</span>');
+    h += '<span class="full"><div class="bar"><i style="width:' + (tot ? bv / tot * 100 : 50).toFixed(1) + '%"></i></div><span class="muted" style="font-size:10.5px">exact, from every aggTrade since ' + FD.fmtTime(D.sessStart) + ' UTC+8</span></span>';
+  }
+  h += kv('Last candle Δ ' + tag(demoM ? 'demo' : 'cand'), '<span class="' + pctCls(lastD) + '">' + FD.fmtQty(lastD) + '</span>');
+  h += kv('CVD (' + cs.length + ' candles) ' + tag(demoM ? 'demo' : 'cand'), '<span class="' + pctCls(cvdC) + '">' + FD.fmtQty(cvdC) + '</span>');
+  h += kv('Volume spike (≥2× avg)', spikeIdx >= 0 ? FD.fmtHM(cs[spikeIdx].t) + ' · ' + (cs[spikeIdx].v / FD.sma(cs, spikeIdx - 1, 20, function (c) { return c.v; })).toFixed(1) + '× · Δ <span class="' + pctCls(cs[spikeIdx].d) + '">' + FD.fmtQty(cs[spikeIdx].d) + '</span>' : '<span class="muted">none in last 60</span>');
+  $('volKv').innerHTML = h;
+  // ---- Liquidity
+  h = '';
+  if (demoM) h = '<span class="full muted">No order book in demo mode (the demo is a scripted candle scenario).</span>';
+  else {
+    var b = D.book, tp = D.top;
+    if (tp && Date.now() - tp.t < 10000) h += kv('Top-20 imbalance ' + tag('real', 'LIVE'), '<span class="' + pctCls(tp.imb) + '">' + (tp.imb * 100).toFixed(0) + '%</span> <span class="muted">(±' + tp.range.toFixed(3) + '%)</span>');
+    else h += kv('Top-20 imbalance', '<span class="muted">unavailable</span>');
+    if (b) {
+      var cov = Math.min(b.mid - b.lo, b.hi - b.mid) / b.mid * 100;
+      [['±0.5%', b.c05, 0.5], ['±1%', b.c1, 1]].forEach(function (x) { h += kv(x[0] + ' bids / asks ' + tag('samp') + (cov < x[2] ? ' <span class="warn" title="The 1000-level REST snapshot only reaches ±' + cov.toFixed(2) + '% of price, so this window is partial">(book reaches ±' + cov.toFixed(2) + '%)</span>' : ''), '<span class="buy">' + FD.fmtUsd(x[1].bid) + '</span> / <span class="sell">' + FD.fmtUsd(x[1].ask) + '</span> · <span class="' + pctCls(x[1].imb) + '">' + (x[1].imb * 100).toFixed(0) + '%</span>'); });
+      var bw = D.walls.filter(function (w) { return w.side === 'bid'; })[0], aw = D.walls.filter(function (w) { return w.side === 'ask'; })[0];
+      h += kv('Largest bid wall', bw ? '<span class="buy">' + FD.fmtUsd(bw.notional) + ' @ ' + FD.fmtPrice(bw.price) + '</span> <span class="muted">' + FD.fmtPct(bw.distPct) + '</span>' : '<span class="muted">none ≥ ' + S.wallK + '× median</span>');
+      h += kv('Largest ask wall', aw ? '<span class="sell">' + FD.fmtUsd(aw.notional) + ' @ ' + FD.fmtPrice(aw.price) + '</span> <span class="muted">' + FD.fmtPct(aw.distPct) + '</span>' : '<span class="muted">none ≥ ' + S.wallK + '× median</span>');
+      h += kv('Book depth covered', '<span class="muted">' + FD.fmtPrice(b.lo) + ' – ' + FD.fmtPrice(b.hi) + '</span>');
+      h += kv('Snapshot', FD.fmtTime(b.t) + ' <span class="muted">every ' + S.bookEvery + 's</span>');
+    } else h += '<span class="full muted">' + esc(D.err.book || 'waiting for first order book snapshot…') + '</span>';
+  }
+  $('liqKv').innerHTML = h;
+  // ---- Structure
+  h = '';
+  var e = v.eng;
+  if (e) {
+    h += kv('Last structure break', e.lastBreak ? '<span class="' + (e.lastBreak === 'up' ? 'buy' : 'sell') + '">' + (e.lastBreak === 'up' ? 'bullish (close above swing high)' : 'bearish (close below swing low)') + '</span>' : '—');
+    h += kv('Last swing high / low', (e.lastH ? FD.fmtPrice(e.lastH.price) : '—') + ' / ' + (e.lastL ? FD.fmtPrice(e.lastL.price) : '—'));
+    [['long', 'LONG'], ['short', 'SHORT']].forEach(function (x) { var s = e[x[0]], names = ['idle (no sweep)', 'swept, waiting for CHoCH', 'CHoCH done, waiting for BOS', 'BOS done, waiting for retest']; h += kv(x[1] + ' setup', '<span class="' + (s.stage ? (x[0] === 'long' ? 'buy' : 'sell') : 'muted') + '">' + names[s.stage] + '</span>'); });
+    var lastEv = e.events.filter(function (z) { return z.type === 'choch' || z.type === 'bos'; }).slice(-2);
+    lastEv.forEach(function (z) { h += kv('Last ' + z.type.toUpperCase(), '<span class="' + (z.side === 'long' ? 'buy' : 'sell') + '">' + (z.side === 'long' ? 'bullish' : 'bearish') + ' @ ' + FD.fmtPrice(z.level) + '</span> ' + FD.fmtHM(cs[z.i].t)); });
+  } else h = '<span class="full muted">waiting for candles…</span>';
+  $('stKv').innerHTML = h;
+}
+function renderSignal() {
+  var v = V(), e = v.eng, cs = v.cs; if (!e || !cs.length) return;
+  var n = cs.length, sig = e.signals.length ? e.signals[e.signals.length - 1] : null, fresh = sig && n - 1 - sig.i < 3; // show a signal for 3 closed candles
+  var txt = $('sigTxt');
+  if (fresh) {
+    var up = sig.side === 'long', ps = FD.positionSize(S.equity, S.riskPct, sig.entryRef, sig.sl, S.feePct, S.slipBps);
+    txt.textContent = up ? 'LONG' : 'SHORT'; txt.className = 'sig ' + sig.side;
+    $('sigWhen').innerHTML = 'signal on the ' + FD.fmtHM(cs[sig.i].t) + ' candle close (UTC+8) · entry at next candle open ≈ reference price' + (v.demo ? ' ' + tag('demo') : '');
+    $('lEntry').textContent = FD.fmtPrice(sig.entryRef); $('lSl').textContent = FD.fmtPrice(sig.sl); $('lTp1').textContent = FD.fmtPrice(sig.tp1); $('lTp2').textContent = FD.fmtPrice(sig.tp2);
+    $('lRr').textContent = '1:2 / 1:3'; $('lScore').textContent = sig.score + '/100';
+    $('sizeKv').innerHTML = ps ? kv('Position size (' + S.riskPct + '% of ' + FD.fmtUsd(S.equity) + ')', FD.fmtQty(ps.qty) + ' ' + (v.demo ? 'units' : st.sym.replace('USDT', '')) + ' · ' + FD.fmtUsd(ps.notional) + ' · ' + ps.lev.toFixed(1) + '× equity') + kv('Risk at stop incl. fees+slippage', FD.fmtUsd(ps.riskAmt)) + kv('Est. fees (' + S.feePct + '% ×2) / slippage (' + S.slipBps + ' bps ×2)', FD.fmtUsd(ps.estFees) + ' / ' + FD.fmtUsd(ps.estSlip)) + kv('Stop distance', FD.fmtPrice(sig.R) + ' (' + sig.slInfo.riskPct.toFixed(2) + '%, ' + sig.slInfo.base + ')') : '';
+    $('explain').innerHTML = '<b class="' + (up ? 'buy' : 'sell') + '">Why ' + (up ? 'LONG' : 'SHORT') + ':</b> ' + esc(explainSig(sig, cs)) + '<br><b>Confidence ' + sig.score + '/100</b> = ' + sig.breakdown.map(function (b) { return esc(b.k) + ' <b>+' + b.pts + '</b>'; }).join(' · ');
+  } else {
+    txt.textContent = 'WAIT'; txt.className = 'sig wait';
+    var best = e.long.stage >= e.short.stage ? ['long', e.long] : ['short', e.short];
+    $('sigWhen').innerHTML = 'no setup with all required conditions on the last closed candle' + (v.demo ? ' ' + tag('demo') : '');
+    ['lEntry', 'lSl', 'lTp1', 'lTp2', 'lRr', 'lScore'].forEach(function (id) { $(id).textContent = '—'; });
+    $('sizeKv').innerHTML = '<span class="full muted">Entry, stop, targets and size appear only with a signal. A signal is never shown without a stop loss.</span>';
+    var lastSig = sig ? 'Last signal: ' + sig.side.toUpperCase() + ' at ' + FD.fmtDateTime(cs[sig.i].t) + ' UTC+8 (' + FD.fmtPrice(sig.entryRef) + ', score ' + sig.score + '). ' : 'No signal yet in the loaded ' + cs.length + ' candles. ';
+    $('explain').innerHTML = esc(lastSig) + (best[1].stage ? 'Most advanced: ' + best[0].toUpperCase() + ' setup at step "' + ['', 'sweep done → waiting for CHoCH', 'CHoCH done → waiting for BOS', 'BOS done → waiting for retest + CVD confirmation'][best[1].stage] + '".' : 'Neither side has an active liquidity sweep.');
+  }
+  function ck(id, dir, s) {
+    $(id).innerHTML = '<b class="' + (dir === 'long' ? 'buy' : 'sell') + '">' + dir.toUpperCase() + '</b>' + FD.checklist(s, dir).map(function (r) {
+      return '<div class="ck"><span class="m ' + (r.ok ? 'ok' : 'no') + '">' + (r.ok ? '✓' : '✗') + '</span><div>' + esc(r.name) + (r.req ? '' : '<span class="opt">scoring</span>') + '<div class="val">' + esc(r.val) + '</div></div></div>';
+    }).join('');
+  }
+  var showL = fresh && sig.side === 'long' ? sigState(sig) : e.long, showS = fresh && sig.side === 'short' ? sigState(sig) : e.short;
+  ck('ckLong', 'long', showL); ck('ckShort', 'short', showS);
+}
+function sigState(sig) { return { stage: 4, sweep: sig.sweep, abs: sig.abs, choch: sig.choch, bos: sig.bos, retest: sig.retest, conf: sig.conf, oi: sig.oi, sl: sig.slInfo }; }
+function explainSig(s, cs) {
+  var up = s.side === 'long', w = function (i) { return FD.fmtHM(cs[i].t); };
+  return 'Price swept ' + (up ? 'below the swing low ' : 'above the swing high ') + FD.fmtPrice(s.sweep.level) + ' (wick to ' + FD.fmtPrice(s.sweep.extreme) + ' at ' + w(s.sweep.i) + ') and closed back inside; ' +
+    (s.abs.absorb ? 'the sweep candle looked like absorption (long wick on ' + s.sweep.volRatio.toFixed(1) + '× volume)' : (up ? 'buyers' : 'sellers') + ' dominated the next candles (Δ ' + FD.fmtQty(s.abs.delta) + ')') + '. ' +
+    (up ? 'Bullish' : 'Bearish') + ' CHoCH at ' + w(s.choch.i) + ' (close through ' + FD.fmtPrice(s.choch.level) + '), BOS at ' + w(s.bos.i) + ' (close through ' + FD.fmtPrice(s.bos.level) + '), then the retest at ' + w(s.retest.i) + ' held with candle delta ' + FD.fmtQty(s.conf.barDelta) + ' and ' + S.cvdBars + '-candle CVD ' + FD.fmtQty(s.conf.roll) + '. ' +
+    'Stop beyond the ' + s.slInfo.base + ' plus a ' + S.atrBuf + ' ATR buffer. OI: ' + s.oi.text + '.';
+}
+function renderAnalysis() {
+  var v = V(), cs = v.cs; if (!cs.length) return;
+  var h = '';
+  if (v.demo) { var oi = demo.data.oi.filter(function (p) { return p.t <= cs[cs.length - 1].T; }); [['5m', 3e5], ['15m', 9e5], ['1h', 36e5]].forEach(function (w) { var c = FD.oiChange(oi, cs[cs.length - 1].T, w[1]), pc = priceChange(cs, null, w[1]); var it = FD.oiInterpret(pc, c ? c.pct : NaN); h += '<p><b>' + w[0] + '</b> ' + tag('demo') + ' ' + esc(it.text) + '</p>'; }); }
+  else {
+    var hist = D.oiHist5.slice(); if (D.oiNow) hist.push(D.oiNow);
+    var c1 = FD.oiChange(D.oiSamples, Date.now(), 6e4); h += '<p><b>1m</b> ' + tag('samp') + ' ' + esc(FD.oiInterpret(priceChange(cs, D.cur, 6e4), c1 ? c1.pct : NaN).text) + '</p>';
+    [['5m', 3e5], ['15m', 9e5], ['1h', 36e5]].forEach(function (w) { var c = FD.oiChange(hist, Date.now(), w[1]); h += '<p><b>' + w[0] + '</b> ' + esc(FD.oiInterpret(priceChange(cs, D.cur, w[1]), c ? c.pct : NaN).text) + '</p>'; });
+  }
+  $('anOi').innerHTML = h;
+  // liquidity
+  h = '';
+  if (v.demo) h = '<p class="muted">No order book in demo mode.</p>';
+  else if (!D.book) h = '<p class="muted">' + esc(D.err.book || 'Waiting for order book snapshots…') + '</p>';
+  else {
+    var b = D.book, px = D.lastPrice || b.mid;
+    var nb = D.walls.filter(function (w) { return w.side === 'bid'; }).sort(function (a, c) { return c.price - a.price; })[0], na = D.walls.filter(function (w) { return w.side === 'ask'; }).sort(function (a, c) { return a.price - c.price; })[0];
+    h += '<p>Nearest bid cluster: ' + (nb ? '<b class="buy">' + FD.fmtPrice(nb.price) + '</b> (' + FD.fmtUsd(nb.notional) + ', ' + nb.ratio.toFixed(0) + '× median, ' + FD.fmtPct(nb.distPct) + ')' : 'none') + '</p>';
+    h += '<p>Nearest ask cluster: ' + (na ? '<b class="sell">' + FD.fmtPrice(na.price) + '</b> (' + FD.fmtUsd(na.notional) + ', ' + na.ratio.toFixed(0) + '× median, ' + FD.fmtPct(na.distPct) + ')' : 'none') + '</p>';
+    var rec = D.wallEvents.filter(function (x) { return x.type === 'pulled' && Date.now() - x.t < 15 * 6e4; }), fil = D.wallEvents.filter(function (x) { return x.type === 'filled' && Date.now() - x.t < 15 * 6e4; });
+    h += '<p>Walls disappearing (15 min): <b>' + rec.length + '</b> pulled' + (rec[0] ? ' (latest ' + rec[0].side + ' ' + FD.fmtUsd(rec[0].qty * rec[0].price) + ' @ ' + FD.fmtPrice(rec[0].price) + ')' : '') + ', <b>' + fil.length + '</b> filled/absorbed' + (fil[0] ? ' (latest ' + fil[0].side + ' @ ' + FD.fmtPrice(fil[0].price) + ')' : '') + '</p>';
+    var e = v.eng, sw = e ? [e.long.sweep, e.short.sweep].filter(Boolean) : [];
+    h += '<p>Potential sweep: ' + (sw.length ? sw.map(function (s) { return 'level ' + FD.fmtPrice(s.level) + ' wicked to ' + FD.fmtPrice(s.extreme); }).join('; ') : (e && e.lastL && e.lastH ? 'resting stops likely below ' + FD.fmtPrice(e.lastL.price) + ' and above ' + FD.fmtPrice(e.lastH.price) + ' (swing levels)' : '—')) + '</p>';
+    var lc = cs[cs.length - 1], rng = lc.h - lc.l, wickDn = Math.min(lc.o, lc.c) - lc.l, wickUp = lc.h - Math.max(lc.o, lc.c), va = FD.sma(cs, cs.length - 2, 20, function (c) { return c.v; });
+    var absB = lc.d < 0 && wickDn > 0.5 * rng && lc.v > 1.2 * va, absS = lc.d > 0 && wickUp > 0.5 * rng && lc.v > 1.2 * va;
+    h += '<p>Possible absorption (last candle): ' + (absB ? '<b class="buy">sellers hit the bid on ' + (lc.v / va).toFixed(1) + '× volume but price closed off the low</b>' : absS ? '<b class="sell">buyers lifted the ask on ' + (lc.v / va).toFixed(1) + '× volume but price closed off the high</b>' : 'none') + '</p>';
+    var exec = D.sessBuy + D.sessSell;
+    h += '<p>Book vs executed: ±0.5% resting ' + FD.fmtUsd(b.c05.bid + b.c05.ask) + ' vs ' + FD.fmtUsd(exec * px) + ' executed since ' + FD.fmtTime(D.sessStart) + '.</p>';
+  }
+  $('anLiq').innerHTML = h;
+  // volume
+  h = ''; var e2 = v.eng;
+  if (e2) {
+    var last5 = cs.slice(-5), d5 = last5.reduce(function (a, c) { return a + c.d; }, 0), v5 = last5.reduce(function (a, c) { return a + c.v; }, 0);
+    h += '<p>Last 5 candles: aggressive ' + (d5 >= 0 ? '<b class="buy">buying</b>' : '<b class="sell">selling</b>') + ' (Δ ' + FD.fmtQty(d5) + ', ' + (v5 ? ((d5 + v5) / 2 / v5 * 100).toFixed(0) : '—') + '% taker-buy) ' + tag(v.demo ? 'demo' : 'cand') + '</p>';
+    var dv = FD.divergence(cs, e2.cvd, e2.swings);
+    h += '<p>CVD divergence: ' + (dv.bearish ? '<b class="sell">bearish</b> (price higher high ' + FD.fmtPrice(dv.bearish.b.price) + ', CVD lower high)' : '') + (dv.bullish ? (dv.bearish ? '; ' : '') + '<b class="buy">bullish</b> (price lower low ' + FD.fmtPrice(dv.bullish.b.price) + ', CVD higher low)' : '') + (!dv.bearish && !dv.bullish ? 'none on the last two swings' : '') + '</p>';
+    var lc2 = cs[cs.length - 1], sp = FD.isSpike(cs, cs.length - 1, 2, 20), body = Math.abs(lc2.c - lc2.o) / Math.max(1e-9, lc2.h - lc2.l);
+    h += '<p>Last candle: ' + (sp ? (body > 0.6 ? '<b>volume confirmation</b> (spike with a ' + (body * 100).toFixed(0) + '% body ' + (lc2.c > lc2.o ? 'up' : 'down') + ')' : '<b class="warn">possible exhaustion</b> (spike but small ' + (body * 100).toFixed(0) + '% body)') : 'no volume spike') + '</p>';
+  }
+  $('anVol').innerHTML = h;
+}
+function renderWalls() {
+  wallsDirty = false;
+  $('wallTbl').tBodies[0].innerHTML = D.wallEvents.slice(0, 120).map(function (e) {
+    var col = { pulled: 'warn', filled: e.side === 'bid' ? 'sell' : 'buy', moved: 'muted', 'new': '', out: 'muted' }[e.type];
+    return '<tr><td class="l num">' + FD.fmtTime(e.t) + '</td><td class="l ' + col + '"><b>' + ({ pulled: 'PULLED (cancelled)', filled: 'FILLED / absorbed', moved: 'MOVED → ' + FD.fmtPrice(e.to), 'new': 'new wall', out: 'left book window' }[e.type]) + '</b></td><td class="l ' + (e.side === 'bid' ? 'buy' : 'sell') + '">' + e.side + '</td><td class="num">' + FD.fmtPrice(e.price) + '</td><td class="num">' + FD.fmtQty(e.qty) + '</td><td class="num">' + FD.fmtUsd(e.qty * e.price) + '</td><td class="num">' + (e.traded != null ? FD.fmtQty(e.traded) : '—') + '</td><td class="num muted">' + (e.life != null ? Math.round(e.life / 1000) + 's' : '—') + '</td></tr>';
+  }).join('') || '<tr><td class="l muted" colspan="8">No wall events yet (needs at least two order book snapshots).</td></tr>';
+}
+function renderHeader() {
+  var v = V(), cs = v.cs, cur = v.cur, px = v.demo ? (cs.length ? cs[cs.length - 1].c : 0) : (D.lastPrice || (cur ? cur.c : cs.length ? cs[cs.length - 1].c : 0));
+  var prev = $('hPx').dataset.p ? +$('hPx').dataset.p : 0;
+  $('hPx').textContent = px ? FD.fmtPrice(px) : '—'; $('hPx').className = 'px num ' + (px > prev ? 'buy' : px < prev ? 'sell' : $('hPx').className.indexOf('buy') > 0 ? 'buy' : $('hPx').className.indexOf('sell') > 0 ? 'sell' : ''); $('hPx').dataset.p = px;
+  if (v.demo) { $('hChg').innerHTML = tag('demo', 'DEMO PRICE'); }
+  else { var t = D.ticker; $('hChg').innerHTML = t ? '<span class="' + pctCls(t.chg) + '">' + FD.fmtPct(t.chg) + '</span> <span class="muted">24h</span>' : '<span class="muted">24h n/a</span>'; }
+  function pill(id, ok, warn, label, txt) { var el = $(id), d = el.querySelector('.dot'); d.className = 'dot ' + (ok ? 'ok' : warn ? 'warnd' : 'bad'); el.lastChild.textContent = label + ' ' + txt; }
+  if (v.demo) { ['stMk', 'stDp', 'stBook', 'stOi'].forEach(function (id) { var el = $(id); el.querySelector('.dot').className = 'dot'; el.lastChild.textContent = el.lastChild.textContent.split(' ')[0] + ' PAUSED'; }); $('stLast').textContent = 'demo'; return; }
+  pill('stMk', mk.isLive(), mk.status === 'connecting' || pollOk > Date.now() - 15000, 'MARKET', mk.isLive() ? 'LIVE' : pollOk > Date.now() - 15000 ? 'POLLING' : mk.status === 'connecting' ? 'CONNECTING' : 'RECONNECTING');
+  pill('stDp', dp.isLive(), dp.status === 'connecting', 'DEPTH', dp.isLive() ? 'LIVE' : dp.status === 'connecting' ? 'CONNECTING' : 'RECONNECTING');
+  var bAge = bookOkAt ? (Date.now() - bookOkAt) / 1000 : Infinity; pill('stBook', bAge < S.bookEvery * 2.5, bAge < 120, 'BOOK', bAge === Infinity ? (D.err.book ? 'ERROR' : 'WAIT') : bAge < S.bookEvery * 2.5 ? 'OK' : 'STALE ' + Math.round(bAge) + 's');
+  var oAge = oiOkAt ? (Date.now() - oiOkAt) / 1000 : Infinity; pill('stOi', oAge < 40, oAge < 180, 'OI', oAge === Infinity ? (D.err.oi ? 'ERROR' : 'WAIT') : oAge < 40 ? 'OK' : 'STALE');
+  var ago = lastData ? Math.round((Date.now() - lastData) / 1000) : null;
+  $('stLast').textContent = lastData ? 'last ' + FD.fmtTime(lastData) + (ago > 3 ? ' (' + ago + 's ago)' : '') : 'last —'; $('stLast').style.color = ago > 20 ? 'var(--sell)' : '';
+}
+function renderDataTable() {
+  var rows = [
+    ['Candles (OHLC, volume)', 'REAL', 'Binance klines REST + kline WebSocket', 'Exact exchange candles; signals use closed candles only'],
+    ['Aggressive buy / sell volume, session CVD', 'REAL', 'Every aggTrade on the WebSocket (+ REST refill after reconnects)', 'Counts from when the page opened'],
+    ['Candle delta / CVD on the chart and in the engine', 'CANDLE', 'Kline taker-buy volume (field 9): Δ = 2 × takerBuy − volume', 'Real executed volume aggregated per candle; same method in backtest'],
+    ['Open interest (current)', 'REAL', '/fapi/v1/openInterest polled every 10 s', ''],
+    ['OI change 1m', 'SAMPLED', 'Local 10 s samples of current OI', 'Only after ~1 min of samples'],
+    ['OI change 5m / 15m / 1h; OI in the engine', 'REAL', '/futures/data/openInterestHist (5m/15m/1h periods)', 'Binance keeps 30 days'],
+    ['Top-20 book imbalance', 'REAL', 'depth20@500ms WebSocket', 'Near-touch only'],
+    ['Order book walls, ±0.5/1% concentration, heatmap', 'SAMPLED', '/fapi/v1/depth?limit=1000 snapshots every ' + S.bookEvery + ' s, stored locally (IndexedDB, 24 h)', 'Resting limit orders, not trades; no history before you opened the app. 1000 levels reach only about ±0.2–0.5% on BTC, so the ±1% window is partial (shown in the panel)'],
+    ['Wall pulled / filled', 'SAMPLED', 'Wall vanished between snapshots + executed trades at that price', 'Fast changes between snapshots are missed'],
+    ['Price + OI interpretation, absorption, divergence', 'DERIVED', 'Rules on the data above', 'Interpretations, not guaranteed signals'],
+    ['Backtest', 'CANDLE', 'Historical klines + openInterestHist', 'No order book, no aggTrade CVD, no sampled OI'],
+    ['DEMO mode', 'DEMO', 'Scripted deterministic scenario built into the app', 'Not market data; never mixed with live']
+  ];
+  var cls = { REAL: 'real', CANDLE: 'cand', SAMPLED: 'samp', DEMO: 'demo', DERIVED: 'na' };
+  $('dataTbl').innerHTML = '<table><thead><tr><th class="l">What</th><th class="l">Type</th><th class="l">Source</th><th class="l">Notes</th></tr></thead><tbody>' + rows.map(function (r) { return '<tr><td class="l">' + r[0] + '</td><td class="l">' + tag(cls[r[1]], r[1]) + '</td><td class="l muted" style="white-space:normal">' + r[2] + '</td><td class="l muted" style="white-space:normal">' + r[3] + '</td></tr>'; }).join('') + '</tbody></table>';
+}
+function renderAll() {
+  renderHeader();
+  if (document.hidden) return;
+  if (uiDirty || st.mode === 'live') { uiDirty = false; renderSide(); renderSignal(); renderAnalysis(); }
+  if (wallsDirty) renderWalls();
+  var tfMs = FD.TF[st.tf];
+  $('chartSub').textContent = (st.mode === 'demo' ? 'DEMO scenario · 5m bars' : st.sym + ' · ' + st.tf + ' · ' + (D.cs.length ? D.cs.length + ' closed candles' : 'loading…') + (D.cur ? ' · candle closes in ' + FD.fmtCountdown(D.cur.T - nowS() + 1) : ''));
+  $('heatNote').innerHTML = st.mode === 'demo' ? '<b style="color:#e9d5ff">DEMO:</b> scripted candles and OI; no order book, no heatmap.' : '<b>Heatmap = sampled order book (resting limit orders)</b> — recorded since ' + (D.heatSince ? FD.fmtDateTime(D.heatSince) + ' UTC+8' : '— (first snapshot pending)') + '; not executed trades; no history before that. ' + D.heat.length + ' snapshots, bin ' + (D.bs || '—') + '. Teal = bids, orange = asks; brighter = more size.';
+}
+setInterval(renderAll, 1000);
+
+// ---------- chart ----------
+var chart = { barW: 8, off: 0, cross: null, raf: 0, geo: null };
+function reqDraw() { if (!chart.raf) chart.raf = requestAnimationFrame(function () { chart.raf = 0; draw(); }); }
+var FONT = getComputedStyle(document.body).fontFamily;
+function draw() {
+  var box = $('cBox'), cv = $('cv'); if (!box.offsetParent) return;
+  var dpr = window.devicePixelRatio || 1, W = box.clientWidth, H = box.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+  var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.font = '600 11px ' + FONT;
+  var v = V(), cs = v.cur ? v.cs.concat([v.cur]) : v.cs, n = cs.length, e = v.eng;
+  if (!n) { g.fillStyle = '#7f8d9b'; g.fillText('Loading candles…', 14, 24); return; }
+  var AX = 72, TX = 20, cvdH = S.cvdPane ? Math.round((H - TX) * 0.2) : 0, pw = W - AX, ph = H - TX - cvdH - (cvdH ? 6 : 0), iv = v.demo ? 3e5 : FD.TF[st.tf], bw = chart.barW;
+  chart.off = Math.max(-(pw / bw) + 10, Math.min(n - 10, chart.off));
+  var R = n - 1 + 4 - chart.off, i0 = Math.max(0, Math.floor(R - pw / bw) - 1), i1 = Math.min(n - 1, Math.ceil(R) + 1);
+  var X = function (i) { return pw - (R - i) * bw - bw / 2; };
+  var lo = Infinity, hi = -Infinity; for (var i = i0; i <= i1; i++) { lo = Math.min(lo, cs[i].l); hi = Math.max(hi, cs[i].h); }
+  var sig = S.sigOn && e && e.signals.length ? e.signals[e.signals.length - 1] : null, sigFresh = sig && v.cs.length - 1 - sig.i < 3; if (sig && !sigFresh && v.cs.length - 1 - sig.i > 60) sig = null; if (sig && sigFresh && sig.i >= i0) { lo = Math.min(lo, sig.sl, sig.tp2); hi = Math.max(hi, sig.sl, sig.tp2); }
+  var pad = (hi - lo) * 0.06 || hi * 0.001; lo -= pad; hi += pad;
+  var Y = function (p) { return 6 + (hi - p) / (hi - lo) * (ph - 12); }, P = function (y) { return hi - (y - 6) / (ph - 12) * (hi - lo); };
+  var XT = function (t) { return X(0) + (t - cs[0].t) / iv * bw; };
+  chart.geo = { pw: pw, ph: ph, R: R, X: X, Y: Y, P: P, n: n };
+  g.save(); g.beginPath(); g.rect(0, 0, pw, ph); g.clip();
+  // heatmap (sampled order book)
+  if (!v.demo && S.heatOn && D.heat.length) {
+    var t0 = cs[i0].t, tEnd = cs[i1].t + iv, hs = D.heat.filter(function (h) { return h.t >= t0 - 60000 && h.t <= tEnd; }), mx = 0;
+    hs.forEach(function (h) { h.b.forEach(function (x) { if (x[1] * x[0] > mx) mx = x[1] * x[0]; }); h.a.forEach(function (x) { if (x[1] * x[0] > mx) mx = x[1] * x[0]; }); });
+    var vals = []; hs.forEach(function (h) { h.b.forEach(function (x) { vals.push(x[0] * x[1]); }); h.a.forEach(function (x) { vals.push(x[0] * x[1]); }); }); vals.sort(function (a, b) { return a - b; });
+    var ref = vals.length ? vals[Math.floor(vals.length * 0.97)] : 1;
+    hs.forEach(function (h, k) {
+      var x0 = XT(h.t), x1 = k < hs.length - 1 ? XT(hs[k + 1].t) : Math.min(XT(h.t + S.bookEvery * 1000), X(n - 1) + bw / 2); if (x1 < 0 || x0 > pw) return; var wdt = Math.max(1, x1 - x0 + 0.5);
+      function cell(x, bid) { var p = x[0], y0 = Y(bid ? p + h.bs : p), y1 = Y(bid ? p : p - h.bs), a = Math.min(1, x[0] * x[1] / ref); if (a < 0.06) return; g.fillStyle = bid ? 'rgba(45,212,191,' + (a * 0.55).toFixed(3) + ')' : 'rgba(251,146,60,' + (a * 0.55).toFixed(3) + ')'; g.fillRect(x0, Math.min(y0, y1), wdt, Math.max(1, Math.abs(y1 - y0))); }
+      h.b.forEach(function (x) { cell(x, true); }); h.a.forEach(function (x) { cell(x, false); });
+    });
+    if (D.heatSince && XT(D.heatSince) > 0 && XT(D.heatSince) < pw) { var xs = XT(D.heatSince); g.strokeStyle = 'rgba(252,211,77,.55)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(xs, 0); g.lineTo(xs, ph); g.stroke(); g.setLineDash([]); g.fillStyle = '#fcd34d'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText('book recording starts →', xs - 4, ph - 4); }
+  }
+  // grid
+  var step = FD.niceStep(hi - lo, Math.max(3, Math.round(ph / 55))), dec = Math.max(0, Math.min(6, -Math.floor(Math.log10(step)) + (step / Math.pow(10, Math.floor(Math.log10(step))) === 5 || step / Math.pow(10, Math.floor(Math.log10(step))) === 2 ? 0 : 0)));
+  g.strokeStyle = 'rgba(148,163,184,0.07)'; g.lineWidth = 1;
+  for (var p = Math.ceil(lo / step) * step; p <= hi; p += step) { var yy = Math.round(Y(p)) + 0.5; g.beginPath(); g.moveTo(0, yy); g.lineTo(pw, yy); g.stroke(); }
+  // volume bars
+  if (S.vol) { var vmax = 0; for (i = i0; i <= i1; i++) vmax = Math.max(vmax, cs[i].v); for (i = i0; i <= i1; i++) { var vh = cs[i].v / vmax * ph * 0.18; g.fillStyle = cs[i].c >= cs[i].o ? 'rgba(34,197,94,0.22)' : 'rgba(239,68,68,0.22)'; g.fillRect(X(i) - Math.max(1, bw * 0.35), ph - vh, Math.max(1, bw * 0.7), vh); } }
+  // walls (current)
+  if (!v.demo && S.walls && D.walls.length) {
+    var labY = [], narrow = pw < 600, wx = pw * (narrow ? 0.72 : 0.55), labN = 0; D.walls.slice(0, narrow ? 8 : 16).forEach(function (w) { var y = Y(w.price); if (y < 0 || y > ph) return; var showLab = labN < (narrow ? 4 : 10) && y > 18 && labY.every(function (q) { return Math.abs(q - y) >= 12; }); if (showLab) { labY.push(y); labN++; } g.strokeStyle = w.side === 'bid' ? 'rgba(45,212,191,0.9)' : 'rgba(251,146,60,0.9)'; g.lineWidth = Math.min(4, 1 + w.ratio / 15); g.beginPath(); g.moveTo(wx, y); g.lineTo(pw, y); g.stroke(); g.lineWidth = 1; g.fillStyle = g.strokeStyle; g.textAlign = 'left'; g.textBaseline = 'bottom'; if (showLab) g.fillText((w.side === 'bid' ? 'BID ' : 'ASK ') + FD.fmtUsd(w.notional) + ' · ' + Math.round((Date.now() - w.first) / 1000) + 's', wx + 2, y - 1); });
+  }
+  // candles
+  var bodyW = Math.max(1, Math.floor(bw * 0.7));
+  for (i = i0; i <= i1; i++) {
+    var k = cs[i], up = k.c >= k.o, xx = Math.round(X(i));
+    g.strokeStyle = g.fillStyle = up ? '#22c55e' : '#ef4444'; if (v.cur && i === n - 1) g.globalAlpha = 0.75;
+    g.beginPath(); g.moveTo(xx + 0.5, Y(k.h)); g.lineTo(xx + 0.5, Y(k.l)); g.stroke();
+    var yo = Y(k.o), yc = Y(k.c); g.fillRect(xx - Math.floor(bodyW / 2), Math.min(yo, yc), bodyW, Math.max(1, Math.abs(yc - yo))); g.globalAlpha = 1;
+  }
+  // structure
+  if (S.struct && e) {
+    e.swings.forEach(function (s) { if (s.i < i0 || s.i > i1) return; g.fillStyle = s.type === 'H' ? 'rgba(248,113,113,.8)' : 'rgba(74,222,128,.8)'; g.beginPath(); g.arc(X(s.i), Y(s.price) + (s.type === 'H' ? -5 : 5), 2.2, 0, 7); g.fill(); });
+    e.events.forEach(function (ev) {
+      if (ev.i < i0 - 50 || ev.i > i1) return; var up = ev.side === 'long', col = up ? '#4ade80' : '#f87171', x = X(ev.i);
+      g.textAlign = 'center'; g.font = '800 10px ' + FONT;
+      if (ev.type === 'sweep') { var y = Y(ev.extreme); g.fillStyle = '#fcd34d'; g.textBaseline = up ? 'top' : 'bottom'; g.fillText('SWEEP', x, up ? y + 4 : y - 4); g.strokeStyle = 'rgba(252,211,77,.6)'; g.setLineDash([2, 2]); g.beginPath(); g.moveTo(x - bw * 6, Y(ev.level)); g.lineTo(x + bw, Y(ev.level)); g.stroke(); g.setLineDash([]); }
+      if (ev.type === 'choch' || ev.type === 'bos') { var yl = Y(ev.level); g.strokeStyle = col; g.setLineDash(ev.type === 'choch' ? [5, 3] : []); g.beginPath(); g.moveTo(x - bw * 8, yl); g.lineTo(x, yl); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.textBaseline = up ? 'bottom' : 'top'; g.fillText(ev.type === 'choch' ? 'CHoCH' : 'BOS', x - bw * 4, up ? yl - 2 : yl + 2); }
+      if (ev.type === 'signal') { var ys = Y(cs[ev.i].c); g.fillStyle = col; g.beginPath(); if (up) { g.moveTo(x, ys + 6); g.lineTo(x - 6, ys + 16); g.lineTo(x + 6, ys + 16); } else { g.moveTo(x, ys - 6); g.lineTo(x - 6, ys - 16); g.lineTo(x + 6, ys - 16); } g.fill(); g.textBaseline = up ? 'top' : 'bottom'; g.fillText(up ? 'LONG' : 'SHORT', x, up ? ys + 18 : ys - 18); }
+    });
+    g.font = '600 11px ' + FONT;
+  }
+  // signal levels
+  if (sig && sig.i >= i0 - 200) {
+    var xs0 = Math.max(0, X(sig.i)), xe = sigFresh ? pw : Math.min(pw, X(sig.i + 30)), lines = [['ENTRY', sig.entryRef, '#e2e8f0'], ['SL', sig.sl, '#ef4444'], ['TP1 1:2', sig.tp1, '#22c55e'], ['TP2 1:3', sig.tp2, '#16a34a']];
+    lines.forEach(function (l) { var y = Y(l[1]); g.strokeStyle = l[2]; g.setLineDash(l[0] === 'ENTRY' ? [] : [6, 3]); if (!sigFresh) g.globalAlpha = 0.45; g.beginPath(); g.moveTo(xs0, y); g.lineTo(xe, y); g.stroke(); g.setLineDash([]); g.fillStyle = l[2]; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText(l[0] + ' ' + FD.fmtPrice(l[1]), xe - 4, y - 1); g.globalAlpha = 1; });
+  }
+  g.restore();
+  // price axis
+  g.fillStyle = '#7f8d9b'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  var pd = hi > 1000 ? 1 : hi > 10 ? 2 : 4;
+  for (p = Math.ceil(lo / step) * step; p <= hi; p += step) g.fillText(FD.fmtPrice(p, pd), pw + 6, Y(p));
+  // time axis
+  var lab = Math.max(1, Math.ceil(90 / bw)); g.textAlign = 'center'; g.textBaseline = 'top';
+  for (i = i0; i <= i1; i++) if (Math.floor(cs[i].t / iv) % lab === 0) g.fillText((iv >= 36e5 ? FD.fmtDateTime(cs[i].t).slice(5, 10) + ' ' : '') + FD.fmtHM(cs[i].t), X(i), H - TX + 4);
+  // last price label + countdown
+  var lc = cs[n - 1], ly = Y(lc.c), colr = lc.c >= lc.o ? '#22c55e' : '#ef4444';
+  if (ly > 0 && ly < ph) { g.strokeStyle = colr; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(0, Math.round(ly) + 0.5); g.lineTo(pw, Math.round(ly) + 0.5); g.stroke(); g.setLineDash([]); }
+  var lyc = Math.max(14, Math.min(ph - 14, ly)); g.fillStyle = colr; g.fillRect(pw, lyc - 14, AX, 28); g.fillStyle = '#04110a'; g.textAlign = 'left'; g.font = '800 11px ' + FONT; g.fillText(FD.fmtPrice(lc.c, pd), pw + 5, lyc - 6);
+  g.font = '600 10px ' + FONT; g.fillText(v.cur ? FD.fmtCountdown(v.cur.T - nowS() + 1) : v.demo ? 'DEMO' : 'closed', pw + 5, lyc + 7); g.font = '600 11px ' + FONT;
+  // CVD pane
+  if (cvdH) {
+    var y0 = ph + 6, cv0 = [], s = 0; for (i = 0; i < n; i++) { s += cs[i].d; cv0.push(s); }
+    var mn = Infinity, mxx = -Infinity; for (i = i0; i <= i1; i++) { mn = Math.min(mn, cv0[i]); mxx = Math.max(mxx, cv0[i]); }
+    var sess = null;
+    if (!v.demo && D.cs.length) { // exact session CVD from aggTrades, anchored to the candle CVD at session start
+      var startI = -1; for (i = 0; i < n; i++) if (D.sessDelta[cs[i].t] != null) { startI = i; break; }
+      if (startI >= 0) { sess = []; var acc = startI > 0 ? cv0[startI - 1] : 0; for (i = startI; i < n; i++) { acc += D.sessDelta[cs[i].t] || 0; sess.push([i, acc]); if (i >= i0 && i <= i1) { mn = Math.min(mn, acc); mxx = Math.max(mxx, acc); } } }
+    }
+    var CY = function (x) { return y0 + 4 + (mxx - x) / ((mxx - mn) || 1) * (cvdH - 8); };
+    g.fillStyle = '#0a0f16'; g.fillRect(0, y0, pw, cvdH); g.strokeStyle = '#18232f'; g.strokeRect(0.5, y0 + 0.5, pw - 1, cvdH - 1);
+    g.save(); g.beginPath(); g.rect(0, y0, pw, cvdH); g.clip();
+    g.strokeStyle = '#38bdf8'; g.lineWidth = 1.5; g.beginPath(); for (i = i0; i <= i1; i++) { i === i0 ? g.moveTo(X(i), CY(cv0[i])) : g.lineTo(X(i), CY(cv0[i])); } g.stroke();
+    if (sess) { g.strokeStyle = '#fbbf24'; g.beginPath(); var st0 = true; sess.forEach(function (q) { if (q[0] < i0 || q[0] > i1) return; st0 ? g.moveTo(X(q[0]), CY(q[1])) : g.lineTo(X(q[0]), CY(q[1])); st0 = false; }); g.stroke(); }
+    g.restore(); g.lineWidth = 1;
+    g.fillStyle = '#38bdf8'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText('CVD (candle taker-buy' + (v.demo ? ', DEMO' : '') + ')', 6, y0 + 3);
+    if (sess) { g.fillStyle = '#fbbf24'; g.fillText('session CVD (exact aggTrades)', 190, y0 + 3); }
+    g.fillStyle = '#7f8d9b'; g.textBaseline = 'middle'; g.fillText(FD.fmtQty(cv0[Math.min(i1, n - 1)]), pw + 6, CY(cv0[Math.min(i1, n - 1)]));
+  }
+  // crosshair
+  var c = chart.cross;
+  if (c && c.x < pw && c.y < ph) {
+    g.strokeStyle = 'rgba(200,215,230,.35)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(c.x + 0.5, 0); g.lineTo(c.x + 0.5, H - TX); g.moveTo(0, c.y + 0.5); g.lineTo(pw, c.y + 0.5); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#1e2a38'; g.fillRect(pw, c.y - 9, AX, 18); g.fillStyle = '#e6edf3'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(FD.fmtPrice(P(c.y), pd), pw + 5, c.y);
+    var ci = Math.round(R - (pw - c.x - bw / 2) / bw);
+    if (ci >= 0 && ci < n) { var kk = cs[ci]; $('chartInfo').textContent = FD.fmtDateTime(kk.t).slice(5, 16) + ' O ' + FD.fmtPrice(kk.o, pd) + ' H ' + FD.fmtPrice(kk.h, pd) + ' L ' + FD.fmtPrice(kk.l, pd) + ' C ' + FD.fmtPrice(kk.c, pd) + ' · Vol ' + FD.fmtQty(kk.v) + ' · Δ ' + FD.fmtQty(kk.d) + ' (' + (kk.v ? (kk.tb / kk.v * 100).toFixed(0) : '—') + '% taker buy)'; }
+  } else $('chartInfo').textContent = '';
+}
+(function () {
+  var cv = $('cv'), ptrs = new Map(), drag = null, pinch = null;
+  function pos(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  cv.addEventListener('pointerdown', function (e) { var p = pos(e); ptrs.set(e.pointerId, p); try { cv.setPointerCapture(e.pointerId); } catch (x) {} if (ptrs.size === 1) drag = { x: p.x, off: chart.off }; else if (ptrs.size === 2) { var a = Array.from(ptrs.values()); pinch = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, bw: chart.barW, mid: (a[0].x + a[1].x) / 2 }; drag = null; } });
+  cv.addEventListener('pointermove', function (e) {
+    var p = pos(e); if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, p);
+    if (pinch && ptrs.size === 2) { var a = Array.from(ptrs.values()); zoomTo(pinch.bw * Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / pinch.d, pinch.mid); return; }
+    if (drag && ptrs.size === 1) { chart.off = drag.off + (p.x - drag.x) / chart.barW; chart.cross = null; reqDraw(); return; }
+    chart.cross = p; reqDraw();
+  });
+  function up(e) { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) drag = null; }
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('pointerleave', function () { chart.cross = null; reqDraw(); });
+  cv.addEventListener('wheel', function (e) { e.preventDefault(); zoomTo(chart.barW * (e.deltaY < 0 ? 1.15 : 1 / 1.15), pos(e).x); }, { passive: false });
+  cv.addEventListener('dblclick', function () { chart.off = 0; chart.barW = 8; reqDraw(); });
+  function zoomTo(nb, x) { var g = chart.geo; if (!g) return; nb = Math.max(2, Math.min(40, nb)); var idx = g.R - (g.pw - x - chart.barW / 2) / chart.barW, R2 = idx + (g.pw - x - nb / 2) / nb; chart.barW = nb; chart.off = g.n - 1 + 4 - R2; reqDraw(); }
+  window.addEventListener('resize', reqDraw);
+})();
+setInterval(reqDraw, 1000);
+
+// ---------- backtest ----------
+function runBacktest() {
+  var bars = +$('btBars').value, mode = $('btMode').value, sym = st.sym, tf = st.tf, out = $('btOut'), stt = $('btStatus');
+  stt.textContent = 'loading ' + bars + ' ' + tf + ' candles…'; $('btRun').disabled = true;
+  var p = oiPeriod(tf), cs, oi = [];
+  getJSON(FAPI + '/fapi/v1/klines?symbol=' + sym + '&interval=' + tf + '&limit=' + Math.min(1500, bars + 1)).then(function (arr) {
+    var now = nowS(); cs = arr.map(FD.parseKline).filter(function (k) { return k.T < now; }).slice(-bars);
+    stt.textContent = 'loading OI history…';
+    var start = cs[0].t, end = cs[cs.length - 1].T, pages = 0;
+    function page(endT) {
+      return getJSON(FAPI + '/futures/data/openInterestHist?symbol=' + sym + '&period=' + p + '&limit=500&endTime=' + endT).then(function (a) {
+        var pts = a.map(function (x) { return { t: +x.timestamp, oi: +x.sumOpenInterest }; }); oi = pts.concat(oi); pages++;
+        if (pts.length === 500 && pts[0].t > start && pages < 6) return page(pts[0].t - 1);
+      });
+    }
+    return page(end).catch(function () { oi = []; });
+  }).then(function () {
+    oi.sort(function (a, b) { return a.t - b.t; }); var seen = {}; oi = oi.filter(function (x) { if (seen[x.t]) return false; seen[x.t] = 1; return true; });
+    stt.textContent = 'running engine bar by bar…';
+    var t0 = performance.now(), eng = FD.runEngine(cs, engineOpts(oi, false)), bt = FD.backtest(cs, eng.signals, { equity: S.equity, riskPct: S.riskPct, feePct: S.feePct, slipBps: S.slipBps, mode: mode });
+    var ms = performance.now() - t0, oiCov = oi.length ? (Math.max(0, Math.min(cs[cs.length - 1].T, oi[oi.length - 1].t) - Math.max(cs[0].t, oi[0].t)) / (cs[cs.length - 1].T - cs[0].t) * 100) : 0;
+    lastBt = { cs: cs, eng: eng, bt: bt, sym: sym, tf: tf, mode: mode, oiCov: oiCov };
+    stt.textContent = 'done in ' + ms.toFixed(0) + ' ms'; renderBacktest();
+  }).catch(function (e) { stt.textContent = 'failed: ' + e.message; out.innerHTML = '<p class="warn">Backtest data unavailable (' + esc(e.message) + ').</p>'; }).finally(function () { $('btRun').disabled = false; });
+}
+var lastBt = null;
+function fmtPf(x) { return x === Infinity ? '∞' : isFinite(x) ? x.toFixed(2) : '—'; }
+function renderBacktest() {
+  var b = lastBt; if (!b) return; var s = b.bt.stats, cs = b.cs, tr = b.bt.trades.filter(function (t) { return !t.skipped; });
+  var h = '<p class="note">' + b.sym + ' ' + b.tf + ' · ' + cs.length + ' closed candles from ' + FD.fmtDateTime(cs[0].t) + ' to ' + FD.fmtDateTime(cs[cs.length - 1].T) + ' UTC+8 · ' + b.eng.signals.length + ' signals (' + b.bt.trades.filter(function (t) { return t.skipped; }).length + ' skipped: gap beyond stop; signals during an open trade are ignored) · OI history covered ' + b.oiCov.toFixed(0) + '% of the period · equity ' + FD.fmtUsd(S.equity) + ', risk ' + S.riskPct + '%, fee ' + S.feePct + '%/fill, slippage ' + S.slipBps + ' bps.</p>';
+  h += '<div class="stats">' + [['Total trades', s.n], ['Win rate', isFinite(s.winRate) ? s.winRate.toFixed(1) + '%' : '—'], ['Profit factor', fmtPf(s.pf)], ['Net profit', '<span class="' + pctCls(s.net) + '">' + FD.fmtUsd(s.net) + ' (' + FD.fmtPct(s.retPct) + ')</span>'],
+    ['Max drawdown', FD.fmtUsd(s.maxDD) + ' (' + s.maxDDPct.toFixed(2) + '%)'], ['Avg planned R:R', isFinite(s.avgPlannedRR) ? '1:' + s.avgPlannedRR.toFixed(2) : '—'], ['Avg realized R', isFinite(s.avgR) ? s.avgR.toFixed(2) + 'R' : '—'], ['Avg win / avg loss', isFinite(s.avgWinLoss) ? s.avgWinLoss.toFixed(2) : '—']].map(function (x) { return '<div class="stat"><span>' + x[0] + '</span><b class="num">' + x[1] + '</b></div>'; }).join('') + '</div>';
+  h += '<table style="max-width:640px"><thead><tr><th class="l">Side</th><th>Trades</th><th>Win rate</th><th>Profit factor</th><th>Net</th><th>Avg R</th></tr></thead><tbody>' + [['LONG', s.long, 'buy'], ['SHORT', s.short, 'sell']].map(function (x) { return '<tr><td class="l ' + x[2] + '"><b>' + x[0] + '</b></td><td>' + x[1].n + '</td><td>' + (isFinite(x[1].winRate) ? x[1].winRate.toFixed(1) + '%' : '—') + '</td><td>' + fmtPf(x[1].pf) + '</td><td class="' + pctCls(x[1].net) + '">' + FD.fmtUsd(x[1].net) + '</td><td>' + (isFinite(x[1].avgR) ? x[1].avgR.toFixed(2) : '—') + '</td></tr>'; }).join('') + '</tbody></table>';
+  h += '<div style="position:relative;height:180px;margin:10px 0"><canvas id="eqCv" style="width:100%;height:180px"></canvas></div>';
+  h += '<div class="scroll" style="max-height:300px"><table><thead><tr><th class="l">#</th><th class="l">Entry time</th><th class="l">Side</th><th>Score</th><th>Entry</th><th>SL</th><th>TP1</th><th>TP2</th><th class="l">Exits</th><th>P&amp;L</th><th>R</th><th>Equity</th></tr></thead><tbody>' +
+    tr.map(function (t, k) { return '<tr><td class="l">' + (k + 1) + '</td><td class="l num">' + FD.fmtDateTime(t.t).slice(5, 16) + '</td><td class="l ' + (t.side === 'long' ? 'buy' : 'sell') + '"><b>' + t.side.toUpperCase() + '</b></td><td>' + (t.score || '—') + '</td><td>' + FD.fmtPrice(t.entry) + '</td><td>' + FD.fmtPrice(t.sl) + '</td><td>' + FD.fmtPrice(t.tp1) + '</td><td>' + FD.fmtPrice(t.tp2) + '</td><td class="l muted">' + t.exits.map(function (x) { return x.why + (x.frac < 1 ? ' ' + x.frac * 100 + '%' : '') + ' @ ' + FD.fmtPrice(x.px) + ' ' + FD.fmtHM(cs[x.i].t); }).join(', ') + '</td><td class="' + pctCls(t.pnl) + '">' + FD.fmtUsd(t.pnl) + '</td><td class="' + pctCls(t.rMult) + '">' + t.rMult.toFixed(2) + '</td><td>' + FD.fmtUsd(t.eqAfter) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  $('btOut').innerHTML = h;
+  var cv = $('eqCv'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = 180; cv.width = W * dpr; cv.height = H * dpr; var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var pts = b.bt.curve, mn = Math.min.apply(null, pts.map(function (p) { return p.eq; })), mx = Math.max.apply(null, pts.map(function (p) { return p.eq; })), t0 = cs[0].t, t1 = cs[cs.length - 1].T;
+  if (mx === mn) { mx += 1; mn -= 1; }
+  var X = function (t) { return 50 + (t - t0) / (t1 - t0) * (W - 60); }, Y = function (v) { return 10 + (mx - v) / (mx - mn) * (H - 30); };
+  g.font = '600 11px ' + FONT; g.fillStyle = '#7f8d9b'; g.fillText(FD.fmtUsd(mx), 2, Y(mx) + 4); g.fillText(FD.fmtUsd(mn), 2, Y(mn) + 4); g.fillText('Equity curve (closed trades)', 54, H - 4);
+  g.strokeStyle = 'rgba(148,163,184,.25)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(50, Y(S.equity)); g.lineTo(W - 10, Y(S.equity)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = s.net >= 0 ? '#22c55e' : '#ef4444'; g.lineWidth = 2; g.beginPath(); g.moveTo(X(t0), Y(S.equity)); pts.forEach(function (p) { g.lineTo(X(p.t), Y(p.eq)); }); g.lineTo(X(t1), Y(pts[pts.length - 1].eq)); g.stroke();
+}
+$('btRun').onclick = runBacktest;
+
+// ---------- settings ----------
+var SET_FIELDS = [['equity', 'Account equity (USDT)', 100], ['riskPct', 'Risk per trade (%)', 0.1], ['feePct', 'Taker fee per fill (%)', 0.01], ['slipBps', 'Slippage per market fill (bps)', 1], ['N', 'Swing fractal N (bars each side)', 1], ['retestTol', 'Retest tolerance (%)', 0.05], ['cvdBars', 'CVD confirmation window (candles)', 1], ['atrBuf', 'Stop buffer (× ATR14)', 0.05], ['maxRiskATR', 'Max stop distance (× ATR14)', 0.5], ['wallK', 'Wall = size > k × median (k)', 1], ['wallMin', 'Wall minimum value (USDT)', 50000], ['wallRange', 'Wall search range (± %)', 0.1], ['wallMax', 'Max walls tracked per side', 1], ['bookEvery', 'Order book snapshot every (s)', 1]];
+function buildSettings() {
+  $('setForm').innerHTML = SET_FIELDS.map(function (f) { return '<label for="set_' + f[0] + '">' + f[1] + '</label><input id="set_' + f[0] + '" type="number" step="' + f[2] + '" value="' + S[f[0]] + '">'; }).join('') + '<span></span><button id="setReset">Reset defaults</button>';
+  SET_FIELDS.forEach(function (f) { $('set_' + f[0]).addEventListener('change', function (e) { var x = +e.target.value; if (isFinite(x) && x > 0) { S[f[0]] = f[0] === 'N' || f[0] === 'cvdBars' || f[0] === 'wallMax' ? Math.max(1, Math.round(x)) : x; if (f[0] === 'bookEvery') S.bookEvery = Math.max(3, Math.min(60, S.bookEvery)); save('settings', S); restartBookTimer(); runLive(); if (st.mode === 'demo') demoStep(); } else e.target.value = S[f[0]]; }); });
+  $('setReset').onclick = function () { var keep = { heatOn: S.heatOn, walls: S.walls, struct: S.struct, sigOn: S.sigOn, vol: S.vol, cvdPane: S.cvdPane }; S = Object.assign({}, SET_DEF, keep); save('settings', S); buildSettings(); runLive(); };
+}
+// ---------- wiring ----------
+function syncTop() {
+  document.querySelectorAll('#symSeg button').forEach(function (b) { b.classList.toggle('on', b.dataset.s === st.sym); });
+  document.querySelectorAll('#tfSeg button').forEach(function (b) { b.classList.toggle('on', b.dataset.tf === st.tf); });
+  [['tHeat', 'heatOn'], ['tWalls', 'walls'], ['tStruct', 'struct'], ['tSig', 'sigOn'], ['tVol', 'vol'], ['tCvd', 'cvdPane']].forEach(function (x) { $(x[0]).classList.toggle('on', !!S[x[1]]); });
+  $('btWhat').textContent = st.sym + ' ' + st.tf;
+}
+$('symSeg').onclick = function (e) { var s = e.target.dataset.s; if (!s || s === st.sym) return; st.sym = s; save('sym', s); if (st.mode === 'demo') demoStop(); else switchMarket(true); };
+$('tfSeg').onclick = function (e) { var t = e.target.dataset.tf; if (!t || t === st.tf) return; st.tf = t; save('tf', t); if (st.mode === 'demo') demoStop(); else switchMarket(false); };
+[['tHeat', 'heatOn'], ['tWalls', 'walls'], ['tStruct', 'struct'], ['tSig', 'sigOn'], ['tVol', 'vol'], ['tCvd', 'cvdPane']].forEach(function (x) { $(x[0]).onclick = function () { S[x[1]] = !S[x[1]]; save('settings', S); syncTop(); reqDraw(); }; });
+$('tReset').onclick = function () { chart.off = 0; chart.barW = 8; reqDraw(); };
+$('bDemo').onclick = function () { if (st.mode === 'demo') demoStop(); else demoStart(); };
+$('dExit').onclick = demoStop; $('dPlay').onclick = function () { demo.playing = !demo.playing; syncDemoBtns(); demoSchedule(); };
+$('dStep').onclick = function () { demo.playing = false; if (demo.k < demo.data.candles.length) { demo.k++; demoStep(); } syncDemoBtns(); };
+$('dRestart').onclick = function () { demo.k = 30; demo.playing = true; demoStep(); demoSchedule(); };
+$('dSpeed').onchange = demoSchedule;
+$('bSettings').onclick = function () { buildSettings(); $('mSettings').style.display = 'flex'; };
+$('bInfo').onclick = function () { $('mInfo').style.display = 'flex'; };
+document.querySelectorAll('.modal').forEach(function (m) { m.addEventListener('click', function (e) { if (e.target === m || e.target.hasAttribute('data-close')) m.style.display = 'none'; }); });
+$('tabbar').onclick = function (e) { var p = e.target.dataset.p; if (!p) return; document.querySelectorAll('#tabbar button').forEach(function (b) { b.classList.toggle('on', b.dataset.p === p); }); document.querySelectorAll('.pane').forEach(function (x) { x.classList.toggle('show', x.id === p); }); if (p === 'pBacktest') renderBacktest(); if (p === 'pData') renderDataTable(); };
+
+var pollOk = 0, timers = [];
+function restartBookTimer() { clearInterval(timers.book); timers.book = setInterval(sampleBook, S.bookEvery * 1000); }
+function switchMarket(symChanged) {
+  var keepBook = !symChanged && D.sym === st.sym ? { heat: D.heat, heatSince: D.heatSince, bs: D.bs, walls: D.walls, wallEvents: D.wallEvents, book: D.book, oiSamples: D.oiSamples, tick: D.tick, sessBuy: D.sessBuy, sessSell: D.sessSell, sessStart: D.sessStart, lastAggId: D.lastAggId } : null;
+  var ver = D.ver + 1; D = freshData(); D.ver = ver; D.sym = st.sym; D.tick = st.sym === 'BTCUSDT' ? 0.1 : 0.01;
+  if (keepBook) Object.assign(D, keepBook);
+  chart.off = 0; uiDirty = true; wallsDirty = true; syncTop();
+  if (st.mode !== 'live') return;
+  if (!keepBook) heatLoad(st.sym).then(function (rows) { if (D.ver !== ver) return; D.heat = rows.concat(D.heat).sort(function (a, b) { return a.t - b.t; }); if (D.heat.length) { D.heatSince = D.heat[0].t; D.bs = D.heat[D.heat.length - 1].bs; } reqDraw(); });
+  refreshKlines(1000); refreshTicker(); refreshOiHist(); sampleOi(); sampleBook();
+  mk.attempt = 0; dp.attempt = 0; mk.start(); dp.start();
+}
+// supervisor: stale detection + REST fallback
+setInterval(function () {
+  if (st.mode !== 'live') return;
+  mk.check(); dp.check();
+  if (!mk.isLive()) { refreshKlines(5).then(function () { if (!D.err.klines) pollOk = Date.now(); }); refreshTicker(); }
+}, 5000);
+setInterval(function () { if (st.mode === 'live') sampleOi(); }, 10000);
+setInterval(function () { if (st.mode === 'live') refreshOiHist(); }, 60000);
+setInterval(function () { if (st.mode === 'live') refreshTicker(); }, 30000);
+setInterval(heatPrune, 36e5);
+restartBookTimer();
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { uiDirty = true; renderAll(); reqDraw(); } });
+
+// boot
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(function () {});
+getJSON(FAPI + '/fapi/v1/time').then(function (r) { var s = r.serverTime - Date.now(); if (Math.abs(s) < 6e5) skew = s; }).catch(function () {});
+syncTop(); renderDataTable();
+idbOpen().then(function (db) { idb = db; heatPrune(); if (/[?&]demo\b/.test(location.search)) demoStart(); else switchMarket(true); });
+window.__fd = { st: st, S: S, D: function () { return D; }, mk: mk, dp: dp, demo: demo, chart: chart, lastBt: function () { return lastBt; }, runBacktest: runBacktest, demoStart: demoStart, demoStop: demoStop,
+  sizes: function () { return { cs: D.cs.length, heat: D.heat.length, walls: D.walls.length, wallEvents: D.wallEvents.length, oiSamples: D.oiSamples.length, tradeBins: D.tradeBins.size, sessDelta: Object.keys(D.sessDelta).length }; } };
+})();
+</script>
+</body>
+</html>
